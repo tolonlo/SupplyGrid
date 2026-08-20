@@ -32,9 +32,12 @@ Cada uno de los cuatro módulos replica la misma arquitectura interna en sus sub
 
 ---
 
-## 🚀 Cómo levantar el proyecto localmente
+## 🚀 Cómo levantar el proyecto
 
-1. **Levantar la Base de Datos:**
-   Asegúrate de tener Docker instalado y ejecuta en la raíz del proyecto:
-   ```bash
-   docker-compose up -d
+Todo el sistema (la base de datos PostgreSQL y la aplicación backend) se levanta completo con **un solo comando**:
+
+\`\`\`bash
+docker compose up --build
+\`\`\`
+
+Una vez que los contenedores inicien correctamente, la aplicación estará disponible y corriendo en el puerto `8080`.
