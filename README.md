@@ -41,3 +41,31 @@ docker compose up --build
 \`\`\`
 
 Una vez que los contenedores inicien correctamente, la aplicación estará disponible y corriendo en el puerto `8080`.
+
+##Estructura Carpetas/Archivos:
+
+\`\`\`
+supplygrid/
+├── datos/                          ← todo lo de Python vive aquí, aislado
+│   ├── generar.py                  (E2-02: crea los CSV)
+│   ├── cargar.sh                   (E2-04: mete los CSV a Postgres)
+│   ├── verificar.py                (E2-07: revisa que todo esté bien)
+│   └── salida/                     (los CSV generados, no se sube a git)
+│
+├── modelo-fisico.sql                ← el DDL "documento", entregable de E2-01
+│
+├── Makefile                         ← "make datos" ejecuta los 3 scripts de arriba
+│
+├── src/main/resources/
+│   └── db/migration/
+│       └── V1__esquemas_iniciales.sql   ← el MISMO SQL, pero en formato Flyway
+│
+├── src/main/java/.../{proveedores,catalogo,ordenes,logistica}/
+│   ├── api/         ← controladores REST (endpoints)
+│   ├── core/        ← lógica de negocio (services)
+│   ├── infra/        ← repositorios JPA (hablan con la BD)
+│   └── contracts/    ← lo único que otro módulo puede importar de este
+│
+├── init.sql                          ← ya existe, solo crea los 4 SCHEMA vacíos
+└── docker-compose.yml
+\`\`\`
