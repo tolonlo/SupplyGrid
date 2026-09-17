@@ -16,56 +16,50 @@ Este proyecto está construido estrictamente como un **monolito modular**. Para 
 ---
 
 ### ⚠️ Nota sobre Relaciones entre Módulos
+
 Para cumplir con la regla de "Cero JOINs entre esquemas", queda estrictamente prohibido utilizar anotaciones `@OneToMany`, `@ManyToOne` o `@ManyToMany` entre entidades que pertenezcan a módulos diferentes.
 
-*   **Si necesitas relacionar algo:** No uses llaves foráneas (`FOREIGN KEY`). En su lugar, utiliza identificadores (IDs) simples (por ejemplo, `Long proveedorId`) y resuelve la comunicación llamando al `contract` del otro módulo o mediante eventos.
+* **Si necesitas relacionar algo:** No uses llaves foráneas (`FOREIGN KEY`). En su lugar, utiliza identificadores (IDs) simples (por ejemplo, `Long proveedorId`) y resuelve la comunicación llamando al `contract` del otro módulo o mediante eventos.
 
 ---
 
 ## 📂 Estructura Interna por Módulo
 
 Cada uno de los cuatro módulos replica la misma arquitectura interna en sus subcarpetas:
-*   `api/`: Controladores web y endpoints REST.
-*   `core/`: Lógica de negocio pura (Servicios).
-*   `infra/`: Conexión a base de datos y repositorios (`JpaRepository`).
-*   `contracts/`: Interfaces públicas y eventos permitidos para el consumo de otros módulos.
+* `api/`: Controladores web y endpoints REST.
+* `core/`: Lógica de negocio pura (Servicios).
+* `infra/`: Conexión a base de datos y repositorios (`JpaRepository`).
+* `contracts/`: Interfaces públicas y eventos permitidos para el consumo de otros módulos.
 
 ---
 
-## 🚀 Cómo levantar el proyecto
+## 🏗️ Estructura de Proyecto
 
-Todo el sistema (la base de datos PostgreSQL y la aplicación backend) se levanta completo con **un solo comando**:
-
-\`\`\`bash
-docker compose up --build
-\`\`\`
-
-Una vez que los contenedores inicien correctamente, la aplicación estará disponible y corriendo en el puerto `8080`.
-
-##Estructura Carpetas/Archivos:
-
-\`\`\`
+```text
 supplygrid/
-├── datos/                          ← todo lo de Python vive aquí, aislado
-│   ├── generar.py                  (E2-02: crea los CSV)
-│   ├── cargar.sh                   (E2-04: mete los CSV a Postgres)
-│   ├── verificar.py                (E2-07: revisa que todo esté bien)
-│   └── salida/                     (los CSV generados, no se sube a git)
+├── datos/                           ← Todo lo de Python vive aquí, aislado
+│   ├── generar.py                   (E2-02: crea los CSV)
+│   ├── cargar.sh                    (E2-04: mete los CSV a Postgres)
+│   ├── verificar.py                 (E2-07: revisa que todo esté bien)
+│   └── salida/                      (CSV generados, ignóralo en git)
 │
-├── modelo-fisico.sql                ← el DDL "documento", entregable de E2-01
-│
+├── modelo-fisico.sql                ← DDL documento, entregable de E2-01
 ├── Makefile                         ← "make datos" ejecuta los 3 scripts de arriba
+├── init.sql                         ← Crea los 4 SCHEMA vacíos
+├── docker-compose.yml
 │
-├── src/main/resources/
-│   └── db/migration/
-│       └── V1__esquemas_iniciales.sql   ← el MISMO SQL, pero en formato Flyway
-│
-├── src/main/java/.../{proveedores,catalogo,ordenes,logistica}/
-│   ├── api/         ← controladores REST (endpoints)
-│   ├── core/        ← lógica de negocio (services)
-│   ├── infra/        ← repositorios JPA (hablan con la BD)
-│   └── contracts/    ← lo único que otro módulo puede importar de este
-│
-├── init.sql                          ← ya existe, solo crea los 4 SCHEMA vacíos
-└── docker-compose.yml
-\`\`\`
+└── src/
+    └── main/
+        ├── java/com/supplygrid/
+        │   ├── proveedores/
+        │   ├── catalogo/
+        │   ├── ordenes/
+        │   └── logistica/
+        │       ├── api/             ← Controladores REST
+        │       ├── core/            ← Lógica de negocio
+        │       ├── infra/           ← Repositorios JPA
+        │       └── contracts/       ← Interfaz pública del módulo
+        │
+        └── resources/
+            └── db/migration/
+                └── V1__esquemas_iniciales.sql ← SQL en formato Flyway
