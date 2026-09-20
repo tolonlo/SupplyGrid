@@ -6,7 +6,7 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>4.1.0</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/>
 	</parent>
 	<groupId>com.supplygrid</groupId>
 	<artifactId>supplygrid</artifactId>
@@ -14,12 +14,8 @@
 	<name/>
 	<description/>
 	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
+	<licenses><license/></licenses>
+	<developers><developer/></developers>
 	<scm>
 		<connection/>
 		<developerConnection/>
@@ -52,10 +48,8 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-flyway</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-liquibase</artifactId>
-		</dependency>
+		<!-- E2-01: se retiro spring-boot-starter-liquibase. Nos quedamos
+		     con una sola herramienta de migraciones (Flyway). -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-opentelemetry</artifactId>
@@ -88,7 +82,6 @@
 			<groupId>org.springframework.modulith</groupId>
 			<artifactId>spring-modulith-starter-jpa</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-prometheus</artifactId>
@@ -136,11 +129,6 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-liquibase-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-opentelemetry-test</artifactId>
 			<scope>test</scope>
 		</dependency>
@@ -173,7 +161,6 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-
 	<build>
 		<plugins>
 			<plugin>
@@ -182,5 +169,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
 </project>

@@ -12,6 +12,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   app:
     build: .
@@ -22,9 +27,9 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/supplygrid_db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_LIQUIBASE_ENABLED=false
     depends_on:
-      - postgres-db
+      postgres-db:
+        condition: service_healthy
 
 volumes:
   postgres_data:
