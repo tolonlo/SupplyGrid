@@ -1,4 +1,4 @@
-.PHONY: datos generar bench cargar verificar db-reset
+.PHONY: datos generar bench cargar verificar db-reset explain
 
 PSQL ?= psql
 
@@ -15,6 +15,9 @@ cargar:
 
 verificar:
 	python3 datos/verificar.py
+
+explain:
+	python3 datos/medir_explain.py
 
 # Deja los cuatro modulos y el esquema transversal vacios sin borrar la base completa.
 db-reset:

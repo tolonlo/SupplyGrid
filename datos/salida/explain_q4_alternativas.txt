@@ -1,0 +1,85 @@
+=== EXPLAIN (ANALYZE, BUFFERS) - Q4 ALTERNATIVAS DE ÍNDICE ===
+
+--- ALTERNATIVA: Índice compuesto cubriente (orden_id, cantidad) ---
+[Caliente - proveedor 3]:
+GroupAggregate  (cost=35172.18..39269.52 rows=5178 width=64) (actual time=21.440..30.366 rows=25 loops=1)
+  Output: (date_trunc('month'::text, o.fecha_orden)), count(DISTINCT o.id), count(l.id), sum(l.cantidad), round(avg(l.cantidad), 2)
+  Group Key: (date_trunc('month'::text, o.fecha_orden))
+  Buffers: shared hit=19962 read=4105 written=298
+  ->  Gather Merge  (cost=35172.18..38790.56 rows=31068 width=28) (actual time=21.262..26.327 rows=29956 loops=1)
+        Output: (date_trunc('month'::text, o.fecha_orden)), o.id, l.id, l.cantidad
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=19962 read=4105 written=298
+        ->  Sort  (cost=34172.15..34204.52 rows=12945 width=28) (actual time=18.721..19.196 rows=9985 loops=3)
+              Output: (date_trunc('month'::text, o.fecha_orden)), o.id, l.id, l.cantidad
+              Sort Key: (date_trunc('month'::text, o.fecha_orden))
+              Sort Method: quicksort  Memory: 1321kB
+              Buffers: shared hit=19962 read=4105 written=298
+              Worker 0:  actual time=17.408..17.788 rows=8382 loops=1
+                Sort Method: quicksort  Memory: 974kB
+                Buffers: shared hit=5586 read=1148 written=86
+              Worker 1:  actual time=17.726..18.155 rows=8250 loops=1
+                Sort Method: quicksort  Memory: 965kB
+                Buffers: shared hit=5478 read=1140 written=87
+              ->  Nested Loop  (cost=146.87..33288.00 rows=12945 width=28) (actual time=0.340..17.127 rows=9985 loops=3)
+                    Output: date_trunc('month'::text, o.fecha_orden), o.id, l.id, l.cantidad
+                    Buffers: shared hit=19948 read=4105 written=298
+                    Worker 0:  actual time=0.055..15.981 rows=8382 loops=1
+                      Buffers: shared hit=5579 read=1148 written=86
+                    Worker 1:  actual time=0.061..16.403 rows=8250 loops=1
+                      Buffers: shared hit=5471 read=1140 written=87
+                    ->  Parallel Bitmap Heap Scan on ordenes.ordenes o  (cost=146.44..5969.64 rows=2158 width=16) (actual time=0.309..2.175 rows=1664 loops=3)
+                          Output: o.id, o.proveedor_id, o.contrato_id, o.fecha_orden, o.estado, o.idempotency_key
+                          Recheck Cond: ((o.proveedor_id = 3) AND (o.fecha_orden >= '2024-09-01 00:00:00'::timestamp without time zone) AND (o.fecha_orden <= '2026-09-18 00:00:00'::timestamp without time zone))
+                          Heap Blocks: exact=1485
+                          Buffers: shared hit=3384
+                          Worker 0:  actual time=0.023..2.005 rows=1397 loops=1
+                            Buffers: shared hit=941
+                          Worker 1:  actual time=0.028..2.139 rows=1375 loops=1
+                            Buffers: shared hit=936
+                          ->  Bitmap Index Scan on idx_ordenes_proveedor_fecha  (cost=0.00..145.15 rows=5178 width=0) (actual time=0.571..0.572 rows=4993 loops=1)
+                                Index Cond: ((o.proveedor_id = 3) AND (o.fecha_orden >= '2024-09-01 00:00:00'::timestamp without time zone) AND (o.fecha_orden <= '2026-09-18 00:00:00'::timestamp without time zone))
+                                Buffers: shared hit=22
+                    ->  Index Scan using idx_alt_lineas_cubriente on ordenes.lineas_orden l  (cost=0.43..12.58 rows=6 width=20) (actual time=0.007..0.008 rows=6 loops=4993)
+                          Output: l.id, l.orden_id, l.sku_codigo, l.cantidad, l.precio_unitario
+                          Index Cond: (l.orden_id = o.id)
+                          Buffers: shared hit=16564 read=4105 written=298
+                          Worker 0:  actual time=0.008..0.009 rows=6 loops=1397
+                            Buffers: shared hit=4638 read=1148 written=86
+                          Worker 1:  actual time=0.008..0.009 rows=6 loops=1375
+                            Buffers: shared hit=4535 read=1140 written=87
+Planning:
+  Buffers: shared hit=34 read=6
+Planning Time: 0.419 ms
+Execution Time: 30.578 ms
+
+[Frío - proveedor 14000]:
+GroupAggregate  (cost=731.63..735.28 rows=34 width=64) (actual time=0.306..0.330 rows=13 loops=1)
+  Output: (date_trunc('month'::text, o.fecha_orden)), count(DISTINCT o.id), count(l.id), sum(l.cantidad), round(avg(l.cantidad), 2)
+  Group Key: (date_trunc('month'::text, o.fecha_orden))
+  Buffers: shared hit=99 read=15
+  ->  Sort  (cost=731.63..732.14 rows=204 width=28) (actual time=0.283..0.288 rows=126 loops=1)
+        Output: (date_trunc('month'::text, o.fecha_orden)), o.id, l.id, l.cantidad
+        Sort Key: (date_trunc('month'::text, o.fecha_orden))
+        Sort Method: quicksort  Memory: 33kB
+        Buffers: shared hit=99 read=15
+        ->  Nested Loop  (cost=5.29..723.80 rows=204 width=28) (actual time=0.093..0.266 rows=126 loops=1)
+              Output: date_trunc('month'::text, o.fecha_orden), o.id, l.id, l.cantidad
+              Buffers: shared hit=99 read=15
+              ->  Bitmap Heap Scan on ordenes.ordenes o  (cost=4.86..133.56 rows=34 width=16) (actual time=0.020..0.046 rows=21 loops=1)
+                    Output: o.id, o.proveedor_id, o.contrato_id, o.fecha_orden, o.estado, o.idempotency_key
+                    Recheck Cond: ((o.proveedor_id = 14000) AND (o.fecha_orden >= '2024-09-01 00:00:00'::timestamp without time zone) AND (o.fecha_orden <= '2026-09-18 00:00:00'::timestamp without time zone))
+                    Heap Blocks: exact=21
+                    Buffers: shared hit=24
+                    ->  Bitmap Index Scan on idx_ordenes_proveedor_fecha  (cost=0.00..4.85 rows=34 width=0) (actual time=0.013..0.014 rows=21 loops=1)
+                          Index Cond: ((o.proveedor_id = 14000) AND (o.fecha_orden >= '2024-09-01 00:00:00'::timestamp without time zone) AND (o.fecha_orden <= '2026-09-18 00:00:00'::timestamp without time zone))
+                          Buffers: shared hit=3
+              ->  Index Scan using idx_alt_lineas_cubriente on ordenes.lineas_orden l  (cost=0.43..17.29 rows=6 width=20) (actual time=0.008..0.009 rows=6 loops=21)
+                    Output: l.id, l.orden_id, l.sku_codigo, l.cantidad, l.precio_unitario
+                    Index Cond: (l.orden_id = o.id)
+                    Buffers: shared hit=75 read=15
+Planning:
+  Buffers: shared hit=24
+Planning Time: 0.292 ms
+Execution Time: 0.399 ms

@@ -1,0 +1,67 @@
+=== EXPLAIN (ANALYZE, BUFFERS) - Q5 ANTES (Sin índices en ordenes.ordenes) ===
+
+--- ESCENARIO CALIENTE (proveedor_id = 3, top 1% hot partition) ---
+Limit  (cost=9357.94..9363.78 rows=50 width=62) (actual time=11.597..13.980 rows=50 loops=1)
+  Output: id, proveedor_id, contrato_id, fecha_orden, estado, idempotency_key
+  Buffers: shared hit=5754
+  ->  Gather Merge  (cost=9357.94..9861.98 rows=4320 width=62) (actual time=11.595..13.972 rows=50 loops=1)
+        Output: id, proveedor_id, contrato_id, fecha_orden, estado, idempotency_key
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=5754
+        ->  Sort  (cost=8357.92..8363.32 rows=2160 width=62) (actual time=9.234..9.237 rows=41 loops=3)
+              Output: id, proveedor_id, contrato_id, fecha_orden, estado, idempotency_key
+              Sort Key: ordenes.fecha_orden DESC
+              Sort Method: top-N heapsort  Memory: 37kB
+              Buffers: shared hit=5754
+              Worker 0:  actual time=8.297..8.300 rows=50 loops=1
+                Sort Method: top-N heapsort  Memory: 37kB
+                Buffers: shared hit=1915
+              Worker 1:  actual time=8.185..8.189 rows=50 loops=1
+                Sort Method: top-N heapsort  Memory: 36kB
+                Buffers: shared hit=1382
+              ->  Parallel Seq Scan on ordenes.ordenes  (cost=0.00..8286.17 rows=2160 width=62) (actual time=0.021..8.950 rows=1667 loops=3)
+                    Output: id, proveedor_id, contrato_id, fecha_orden, estado, idempotency_key
+                    Filter: (ordenes.proveedor_id = 3)
+                    Rows Removed by Filter: 165000
+                    Buffers: shared hit=5682
+                    Worker 0:  actual time=0.021..7.967 rows=1653 loops=1
+                      Buffers: shared hit=1879
+                    Worker 1:  actual time=0.012..7.887 rows=1188 loops=1
+                      Buffers: shared hit=1346
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.096 ms
+Execution Time: 14.025 ms
+
+--- ESCENARIO FRÍO (proveedor_id = 14000, cola larga) ---
+Limit  (cost=9286.46..9289.72 rows=28 width=62) (actual time=8.274..10.425 rows=21 loops=1)
+  Output: id, proveedor_id, contrato_id, fecha_orden, estado, idempotency_key
+  Buffers: shared hit=5754
+  ->  Gather Merge  (cost=9286.46..9289.72 rows=28 width=62) (actual time=8.272..10.420 rows=21 loops=1)
+        Output: id, proveedor_id, contrato_id, fecha_orden, estado, idempotency_key
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=5754
+        ->  Sort  (cost=8286.43..8286.47 rows=14 width=62) (actual time=6.143..6.144 rows=7 loops=3)
+              Output: id, proveedor_id, contrato_id, fecha_orden, estado, idempotency_key
+              Sort Key: ordenes.fecha_orden DESC
+              Sort Method: quicksort  Memory: 26kB
+              Buffers: shared hit=5754
+              Worker 0:  actual time=5.098..5.099 rows=7 loops=1
+                Sort Method: quicksort  Memory: 25kB
+                Buffers: shared hit=1298
+              Worker 1:  actual time=5.309..5.310 rows=6 loops=1
+                Sort Method: quicksort  Memory: 25kB
+                Buffers: shared hit=1462
+              ->  Parallel Seq Scan on ordenes.ordenes  (cost=0.00..8286.17 rows=14 width=62) (actual time=0.699..6.029 rows=7 loops=3)
+                    Output: id, proveedor_id, contrato_id, fecha_orden, estado, idempotency_key
+                    Filter: (ordenes.proveedor_id = 14000)
+                    Rows Removed by Filter: 166660
+                    Buffers: shared hit=5682
+                    Worker 0:  actual time=0.180..4.945 rows=7 loops=1
+                      Buffers: shared hit=1262
+                    Worker 1:  actual time=0.644..5.138 rows=6 loops=1
+                      Buffers: shared hit=1426
+Planning Time: 0.058 ms
+Execution Time: 10.460 ms
