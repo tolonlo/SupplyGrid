@@ -37,5 +37,10 @@ datos/salida/*
 !datos/salida/tiempos_carga_por_tabla.csv
 !datos/salida/checksum_ordenes.txt
 !datos/salida/casos-borde.txt
+<<<<<<< HEAD
 !datos/salida/explain_*
 !datos/salida/*.md
+=======
+!datos/salida/metricas_q1_q5.csv
+!datos/salida/metricas_q1_q5_crudas.csv
+>>>>>>> 64aebe62f243cfa2bbaa0886ab3d167abe48e8a4
