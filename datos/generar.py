@@ -1,219 +1,199 @@
 #!/usr/bin/env python3
-"""
-datos/generar.py — E2-02 (version minima, Tom)
+"""Genera el dataset de carga de SupplyGrid de forma reproducible.
 
-Genera CSVs chiquitos y validos para las 7 tablas, solo para poder
-probar la carga y la medicion HOY. Todavia NO tiene el sesgo Zipf real
-ni la estacionalidad ni los 8 casos borde con detalle: eso lo completa
-Ema en E2-02b sobre este mismo archivo (buscar los comentarios
-"E2-02b" mas abajo, ahi va cada reemplazo).
-
-Uso:
-    python3 datos/generar.py --seed 42 --out datos/salida
-
-Reglas que SI se respetan desde ya:
-  * Escritura por streaming (csv.writer fila a fila), nunca todo en
-    memoria.
-  * Orden que respeta dependencias: proveedores -> contratos -> catalogo
-    -> franjas -> ordenes -> lineas -> eventos.
-  * Llaves foraneas resueltas por aritmetica sobre los IDs (nunca
-    consultando la base).
-  * --seed fijo -> reproducible.
+Zipf discreto con s=0.74: en 15.000 proveedores con contrato, los 750
+primeros concentran aproximadamente 40% del peso. Las fechas ponderan los tres
+ultimos dias de cada mes y las horas 08:00-11:59 para reproducir picos.
 """
 import argparse
+import bisect
 import csv
 import os
 import random
 from datetime import datetime, timedelta
 
-# Volumen chico a proposito (version minima). E2-02b lo sube al objetivo
-# real del enunciado (~4.9M filas).
-N_PROVEEDORES = 2_000
-N_CONTRATOS = 300
-N_SKU = 5_000
+N_PROVEEDORES = 100_000
+N_CONTRATOS = 15_000
+N_SKU = 400_000
 N_CEDIS = 5
-N_FRANJAS = 3_000
-N_ORDENES = 8_000
-LINEAS_PROMEDIO = 5
-N_EVENTOS = 4_000
+N_FRANJAS = 150_000
+N_ORDENES = 500_000
+N_LINEAS_OBJETIVO = 3_000_000
+N_EVENTOS = 800_000
+ZIPF_S = 0.74
+DIAS_HISTORIA = 730
 
 
 def parse_args():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--out", type=str, default="datos/salida")
-    return ap.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--out", type=str, default="datos/salida")
+    return parser.parse_args()
 
 
-def fecha_iso(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%d")
+def fecha_iso(fecha):
+    return fecha.strftime("%Y-%m-%d")
 
 
-def datetime_iso(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%dT%H:%M:%S")
+def datetime_iso(fecha):
+    return fecha.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def cdf_zipf(n, exponent):
+    acumulada = []
+    total = 0.0
+    for rango in range(1, n + 1):
+        total += rango ** -exponent
+        acumulada.append(total)
+    return acumulada, total
+
+
+def elegir_zipf(rng, acumulada, total):
+    return bisect.bisect_left(acumulada, rng.random() * total) + 1
+
+
+def es_fin_de_mes(fecha):
+    siguiente = fecha.replace(day=28) + timedelta(days=4)
+    ultimo_dia = siguiente - timedelta(days=siguiente.day)
+    return fecha.day >= ultimo_dia.day - 2
+
+
+def construir_pesos_dias(hoy):
+    fechas = [hoy - timedelta(days=offset) for offset in range(DIAS_HISTORIA + 1)]
+    pesos = [3 if es_fin_de_mes(fecha) else 1 for fecha in fechas]
+    acumulada = []
+    total = 0
+    for peso in pesos:
+        total += peso
+        acumulada.append(total)
+    return fechas, acumulada, total
+
+
+def construir_pesos_horas():
+    acumulada = []
+    total = 0
+    for hora in range(24):
+        total += 3 if 8 <= hora <= 11 else 1
+        acumulada.append(total)
+    return acumulada, total
+
+
+def elegir_fecha(rng, fechas, acumulada_dias, total_dias, acumulada_horas, total_horas):
+    indice = bisect.bisect_left(acumulada_dias, rng.random() * total_dias)
+    hora = bisect.bisect_left(acumulada_horas, rng.random() * total_horas)
+    return fechas[indice].replace(hour=hora, minute=rng.randrange(60), second=rng.randrange(60))
+
+
+def escribir_casos_borde(out):
+    casos = [
+        ("CASO-01 orden=1 lineas=300", "Una orden de 300 lineas rompe supuestos de tamano de transaccion y payload."),
+        ("CASO-02 contrato=1", "Un contrato vencido ayer reproduce lecturas obsoletas y carreras durante la validacion de vigencia."),
+        ("CASO-03 contrato=2", "Un contrato que vence hoy reproduce el limite temporal entre disponible y vencido."),
+        ("CASO-04 franja=1", "Una franja agotada reproduce contencion concurrente por el ultimo recurso logistico."),
+        ("CASO-05 orden=2", "Una orden con 500 unidades reproduce cantidades atipicas que desbordan validaciones y totales."),
+        ("CASO-06 linea=307 sku=SKU-EDGE-FUERA-CATALOGO", "Un SKU fuera del catalogo del proveedor reproduce referencias cruzadas invalidas."),
+        ("CASO-07 evento=1", "Un evento con detalle grande reproduce crecimiento append-only y presion de almacenamiento."),
+        ("CASO-08 proveedor=100000", "Un proveedor sin contrato reproduce altas incompletas y fallos de resolucion entre modulos."),
+    ]
+    with open(os.path.join(out, "casos-borde.txt"), "w", encoding="utf-8", newline="") as archivo:
+        archivo.write("# IDs sembrados y patologia que reproducen\n")
+        for identificador, explicacion in casos:
+            archivo.write(f"{identificador}: {explicacion}\n")
 
 
 def main():
     args = parse_args()
-    random.seed(args.seed)
+    rng = random.Random(args.seed)
     os.makedirs(args.out, exist_ok=True)
-
     hoy = datetime(2026, 9, 18)
-
-    # ---------------------------------------------------------------
-    # proveedores.proveedores
-    # ---------------------------------------------------------------
-    ruta = os.path.join(args.out, "proveedores.csv")
-    with open(ruta, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["id", "nombre", "nit", "ciudad", "fecha_registro", "activo"])
-        ciudades = ["Medellin", "Bogota", "Cali", "Barranquilla", "Bucaramanga"]
-        for i in range(1, N_PROVEEDORES + 1):
-            w.writerow([
-                i,
-                f"Proveedor {i}",
-                f"NIT-{900000000 + i}",
-                random.choice(ciudades),
-                fecha_iso(hoy - timedelta(days=random.randint(0, 1500))),
-                "true",
-            ])
-    print(f"proveedores.csv -> {N_PROVEEDORES} filas")
-
-    # ---------------------------------------------------------------
-    # proveedores.contratos (solo una fraccion de proveedores tiene uno)
-    # ---------------------------------------------------------------
-    ruta = os.path.join(args.out, "contratos.csv")
     contrato_proveedor = {}
-    with open(ruta, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["id", "proveedor_id", "fecha_inicio", "fecha_fin", "estado"])
-        proveedores_con_contrato = random.sample(range(1, N_PROVEEDORES + 1), N_CONTRATOS)
-        for cid, proveedor_id in enumerate(proveedores_con_contrato, start=1):
-            inicio = hoy - timedelta(days=random.randint(30, 700))
-            fin = inicio + timedelta(days=random.randint(180, 900))
-            w.writerow([cid, proveedor_id, fecha_iso(inicio), fecha_iso(fin), "VIGENTE"])
-            contrato_proveedor[cid] = proveedor_id
-    print(f"contratos.csv -> {N_CONTRATOS} filas")
-
-    contrato_ids = list(contrato_proveedor.keys())
-
-    # ---------------------------------------------------------------
-    # catalogo.catalogo_sku
-    # ---------------------------------------------------------------
-    ruta = os.path.join(args.out, "catalogo_sku.csv")
     skus_por_contrato = {}
-    with open(ruta, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["id", "proveedor_id", "contrato_id", "sku_codigo",
-                     "descripcion", "precio", "fecha_inicio", "fecha_fin"])
-        sid = 1
-        for _ in range(N_SKU):
-            contrato_id = random.choice(contrato_ids)
-            proveedor_id = contrato_proveedor[contrato_id]
-            sku_codigo = f"SKU-{sid:07d}"
-            precio = round(random.uniform(5000, 500000), 2)
-            w.writerow([
-                sid, proveedor_id, contrato_id, sku_codigo,
-                f"Producto {sid}", precio,
-                fecha_iso(hoy - timedelta(days=300)),
-                fecha_iso(hoy + timedelta(days=300)),
-            ])
+
+    ruta = os.path.join(args.out, "proveedores.csv")
+    with open(ruta, "w", newline="", encoding="utf-8") as archivo:
+        writer = csv.writer(archivo)
+        writer.writerow(["id", "nombre", "nit", "ciudad", "fecha_registro", "activo"])
+        ciudades = ["Medellin", "Bogota", "Cali", "Barranquilla", "Bucaramanga"]
+        for proveedor_id in range(1, N_PROVEEDORES + 1):
+            writer.writerow([proveedor_id, f"Proveedor {proveedor_id}", f"NIT-{900000000 + proveedor_id}", rng.choice(ciudades), fecha_iso(hoy - timedelta(days=rng.randint(0, 1500))), "true"])
+
+    ruta = os.path.join(args.out, "contratos.csv")
+    with open(ruta, "w", newline="", encoding="utf-8") as archivo:
+        writer = csv.writer(archivo)
+        writer.writerow(["id", "proveedor_id", "fecha_inicio", "fecha_fin", "estado"])
+        for contrato_id in range(1, N_CONTRATOS + 1):
+            inicio = hoy - timedelta(days=rng.randint(30, 700))
+            fin = hoy + timedelta(days=rng.randint(180, 900))
+            estado = "VIGENTE"
+            if contrato_id == 1:
+                fin, estado = hoy - timedelta(days=1), "VENCIDO"
+            elif contrato_id == 2:
+                fin = hoy
+            writer.writerow([contrato_id, contrato_id, fecha_iso(inicio), fecha_iso(fin), estado])
+            contrato_proveedor[contrato_id] = contrato_id
+
+    ruta = os.path.join(args.out, "catalogo_sku.csv")
+    with open(ruta, "w", newline="", encoding="utf-8") as archivo:
+        writer = csv.writer(archivo)
+        writer.writerow(["id", "proveedor_id", "contrato_id", "sku_codigo", "descripcion", "precio", "fecha_inicio", "fecha_fin"])
+        for sku_id in range(1, N_SKU + 1):
+            contrato_id = ((sku_id - 1) % N_CONTRATOS) + 1
+            sku_codigo = f"SKU-{sku_id:07d}"
             skus_por_contrato.setdefault(contrato_id, []).append(sku_codigo)
-            sid += 1
-    print(f"catalogo_sku.csv -> {N_SKU} filas")
+            writer.writerow([sku_id, contrato_id, contrato_id, sku_codigo, f"Producto {sku_id}", f"{rng.uniform(5000, 500000):.2f}", fecha_iso(hoy - timedelta(days=300)), fecha_iso(hoy + timedelta(days=300))])
 
-    # ---------------------------------------------------------------
-    # logistica.franjas_descargue
-    # ---------------------------------------------------------------
     ruta = os.path.join(args.out, "franjas_descargue.csv")
-    with open(ruta, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["id", "cedi_id", "fecha", "hora_inicio", "hora_fin",
-                     "disponible", "orden_id"])
-        for i in range(1, N_FRANJAS + 1):
-            cedi_id = random.randint(1, N_CEDIS)
-            fecha = hoy + timedelta(days=random.randint(0, 60))
-            hora = random.randint(6, 17)
-            w.writerow([
-                i, cedi_id, fecha_iso(fecha),
-                f"{hora:02d}:00:00", f"{hora+1:02d}:00:00",
-                "true", "",
-            ])
-    print(f"franjas_descargue.csv -> {N_FRANJAS} filas")
+    with open(ruta, "w", newline="", encoding="utf-8") as archivo:
+        writer = csv.writer(archivo)
+        writer.writerow(["id", "cedi_id", "fecha", "hora_inicio", "hora_fin", "disponible", "orden_id"])
+        for franja_id in range(1, N_FRANJAS + 1):
+            fecha = hoy + timedelta(days=rng.randint(0, 60))
+            hora = rng.randint(6, 17)
+            writer.writerow([franja_id, rng.randint(1, N_CEDIS), fecha_iso(fecha), f"{hora:02d}:00:00", f"{hora + 1:02d}:00:00", "false" if franja_id == 1 else "true", "1" if franja_id == 1 else ""])
 
-    # ---------------------------------------------------------------
-    # ordenes.ordenes + ordenes.lineas_orden
-    # ---------------------------------------------------------------
+    proveedores_zipf, total_zipf = cdf_zipf(N_CONTRATOS, ZIPF_S)
+    fechas, acumulada_dias, total_dias = construir_pesos_dias(hoy)
+    acumulada_horas, total_horas = construir_pesos_horas()
     ruta_ord = os.path.join(args.out, "ordenes.csv")
     ruta_lin = os.path.join(args.out, "lineas_orden.csv")
-    with open(ruta_ord, "w", newline="", encoding="utf-8") as fo, \
-         open(ruta_lin, "w", newline="", encoding="utf-8") as fl:
-        wo = csv.writer(fo)
-        wl = csv.writer(fl)
-        wo.writerow(["id", "proveedor_id", "contrato_id", "fecha_orden",
-                      "estado", "idempotency_key"])
-        wl.writerow(["id", "orden_id", "sku_codigo", "cantidad", "precio_unitario"])
-
+    with open(ruta_ord, "w", newline="", encoding="utf-8") as ordenes, open(ruta_lin, "w", newline="", encoding="utf-8") as lineas:
+        writer_orden = csv.writer(ordenes)
+        writer_linea = csv.writer(lineas)
+        writer_orden.writerow(["id", "proveedor_id", "contrato_id", "fecha_orden", "estado", "idempotency_key"])
+        writer_linea.writerow(["id", "orden_id", "sku_codigo", "cantidad", "precio_unitario"])
         linea_id = 1
         for orden_id in range(1, N_ORDENES + 1):
-            # -----------------------------------------------------------
-            # E2-02b (Ema): ACA va el sesgo Zipf. Hoy elegimos el
-            # contrato/proveedor de cada orden PAREJO (misma chance para
-            # todos) porque solo estamos probando que la tuberia funciona.
-            # El reemplazo real es: samplear el proveedor con una
-            # distribucion Zipf (parametro s documentado) para que el 5%
-            # de proveedores concentre el 40% de las ordenes, y de ahi
-            # sacar uno de sus contratos vigentes.
-            # -----------------------------------------------------------
-            contrato_id = random.choice(contrato_ids)
-            proveedor_id = contrato_proveedor[contrato_id]
-
-            fecha = hoy - timedelta(days=random.randint(0, 730),
-                                     hours=random.randint(0, 23))
-            # -----------------------------------------------------------
-            # E2-02b (Ema): ACA va la estacionalidad mensual y horaria
-            # (pico fin de mes, pico 8-11am). Hoy la fecha es pareja en
-            # todo el rango de 24 meses, sin picos.
-            # -----------------------------------------------------------
-
-            wo.writerow([
-                orden_id, proveedor_id, contrato_id, datetime_iso(fecha),
-                "CONFIRMADA", f"seed{args.seed}-orden-{orden_id}",
-            ])
-            n_lineas = max(1, int(random.gauss(LINEAS_PROMEDIO, 2)))
-            skus_disp = skus_por_contrato.get(contrato_id) or ["SKU-0000001"]
-            for _ in range(n_lineas):
-                wl.writerow([
-                    linea_id, orden_id, random.choice(skus_disp),
-                    random.randint(1, 20), round(random.uniform(5000, 500000), 2),
-                ])
+            contrato_id = elegir_zipf(rng, proveedores_zipf, total_zipf)
+            fecha = elegir_fecha(rng, fechas, acumulada_dias, total_dias, acumulada_horas, total_horas)
+            writer_orden.writerow([orden_id, contrato_id, contrato_id, datetime_iso(fecha), "CONFIRMADA", f"seed{args.seed}-orden-{orden_id}"])
+            if orden_id == 1:
+                cantidad_lineas = 300
+            elif orden_id <= 295:
+                cantidad_lineas = 5
+            else:
+                cantidad_lineas = 6
+            for indice in range(cantidad_lineas):
+                sku = "SKU-EDGE-FUERA-CATALOGO" if orden_id == 3 and indice == 0 else rng.choice(skus_por_contrato[contrato_id])
+                cantidad = 500 if orden_id == 2 and indice == 0 else rng.randint(1, 20)
+                writer_linea.writerow([linea_id, orden_id, sku, cantidad, f"{rng.uniform(5000, 500000):.2f}"])
                 linea_id += 1
-    print(f"ordenes.csv -> {N_ORDENES} filas")
-    print(f"lineas_orden.csv -> {linea_id - 1} filas")
 
-    # ---------------------------------------------------------------
-    # auditoria.eventos
-    # ---------------------------------------------------------------
     ruta = os.path.join(args.out, "eventos.csv")
-    with open(ruta, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["id", "entidad", "entidad_id", "tipo_evento",
-                     "fecha_evento", "detalle"])
-        for i in range(1, N_EVENTOS + 1):
-            w.writerow([
-                i, "orden", random.randint(1, N_ORDENES), "ORDEN_CONFIRMADA",
-                datetime_iso(hoy - timedelta(days=random.randint(0, 730))),
-                "{}",
-            ])
-    print(f"eventos.csv -> {N_EVENTOS} filas")
+    with open(ruta, "w", newline="", encoding="utf-8") as archivo:
+        writer = csv.writer(archivo)
+        writer.writerow(["id", "entidad", "entidad_id", "tipo_evento", "fecha_evento", "detalle"])
+        for evento_id in range(1, N_EVENTOS + 1):
+            detalle = "{\"payload\":\"" + ("x" * 4096) + "\"}" if evento_id == 1 else "{}"
+            writer.writerow([evento_id, "orden", rng.randint(1, N_ORDENES), "ORDEN_CONFIRMADA", datetime_iso(hoy - timedelta(days=rng.randint(0, 730))), detalle])
 
-    # -----------------------------------------------------------------
-    # E2-02b (Ema): ACA faltan los 8 casos borde sembrados a proposito
-    # (orden con 300 lineas, contrato vencido ayer, etc.), con sus IDs
-    # anotados en un archivo casos-borde.txt.
-    # -----------------------------------------------------------------
-
-    print(f"\nListo. seed={args.seed}. Archivos en: {args.out}")
+    escribir_casos_borde(args.out)
+    lineas_generadas = linea_id - 1
+    if lineas_generadas != N_LINEAS_OBJETIVO:
+        raise RuntimeError(f"Se esperaban {N_LINEAS_OBJETIVO} lineas, se generaron {lineas_generadas}")
+    filas_totales = N_PROVEEDORES + N_CONTRATOS + N_SKU + N_FRANJAS + N_ORDENES + lineas_generadas + N_EVENTOS
+    top_share = sum(rango ** -ZIPF_S for rango in range(1, N_CONTRATOS // 20 + 1)) / total_zipf
+    print(f"filas totales -> {filas_totales}; Zipf s={ZIPF_S}, peso teorico top 5%={top_share:.3f}")
+    print(f"Listo. seed={args.seed}. Archivos en: {args.out}")
 
 
 if __name__ == "__main__":
