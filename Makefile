@@ -16,8 +16,7 @@ cargar:
 verificar:
 	python3 datos/verificar.py
 
-# Deja los cuatro modulos y el esquema transversal vacios sin borrar la base completa. Necesita la
-# app APAGADA (docker compose stop app) para no chocar con Flyway.
+# Deja los cuatro modulos y el esquema transversal vacios sin borrar la base completa.
 db-reset:
 	$(PSQL) -c "TRUNCATE proveedores.contratos, proveedores.proveedores, catalogo.catalogo_sku, \
 	          ordenes.lineas_orden, ordenes.ordenes, logistica.franjas_descargue, \

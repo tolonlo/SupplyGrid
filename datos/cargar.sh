@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # datos/cargar.sh — E2-04
 # Uso:  bash datos/cargar.sh [bench|carga|todo]      (default: todo)
-#   bench -> Fase 3: 4 estrategias sobre el mismo subconjunto de N_SUB ordenes
+#   bench -> Fase 3: 3 estrategias sobre el mismo subconjunto de N_SUB ordenes
 #   carga -> Fase 2: COPY de las 7 tablas, indices despues, ANALYZE
-# Requisito para bench: la app corriendo en APP_URL (estrategia 4).
 # Para probar con pocos datos:  N_SUB=8000 bash datos/cargar.sh todo
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -11,7 +10,6 @@ cd "$(dirname "$0")/.."
 DIR=datos/salida
 SUBCONJUNTO=$DIR/subconjunto_ordenes.csv
 N_SUB=${N_SUB:-50000}
-APP_URL=${APP_URL:-http://localhost:8080}
 T_TABLAS=$DIR/tiempos_carga_por_tabla.csv
 T_ESTRAT=$DIR/comparacion_estrategias.csv
 
@@ -86,8 +84,6 @@ PY
 est_copy()  { $PSQL -c "COPY ordenes.ordenes ($COLS_ORD) FROM STDIN WITH (FORMAT csv, HEADER true)" < "$SUBCONJUNTO"; }
 est_lotes() { $PSQL < "$DIR/.lotes.sql"; }        # 1 transaccion, lotes de 1000 filas
 est_fila()  { $PSQL < "$DIR/.filafila.sql"; }     # autocommit: 1 commit (fsync) por fila
-est_app()   { python3 datos/bench_app.py "$SUBCONJUNTO" "$APP_URL"; }
-
 medir() {  # $1 = nombre, resto = comando
   local nombre=$1; shift
   reset_ordenes
@@ -99,12 +95,9 @@ medir() {  # $1 = nombre, resto = comando
 }
 
 fase3_bench() {
-  echo "== FASE 3: comparacion de 4 estrategias (mismo subconjunto de $N_SUB ordenes) =="
+  echo "== FASE 3: comparacion de 3 estrategias (mismo subconjunto de $N_SUB ordenes) =="
   local total; total=$(( $(wc -l < "$DIR/ordenes.csv") - 1 ))
   [ "$total" -ge "$N_SUB" ] || { echo "ordenes.csv tiene $total filas y se necesitan >= $N_SUB (E2-02b). Prueba con N_SUB=$total"; exit 1; }
-    code=$(curl -s -o /dev/null -w '%{http_code}' "$APP_URL/actuator/health" || true)
-  [ "$code" != "000" ] && [ -n "$code" ] \
-    || { echo "La app no responde en $APP_URL (levantala: ./mvnw spring-boot:run)"; exit 1; }
   head -n $((N_SUB + 1)) "$DIR/ordenes.csv" > "$SUBCONJUNTO"
   gen_sql fila > "$DIR/.filafila.sql"     # se generan ANTES de cronometrar
   gen_sql lote > "$DIR/.lotes.sql"
@@ -114,7 +107,6 @@ fase3_bench() {
   medir "1_COPY_masivo"                   est_copy
   medir "2_INSERT_lotes_1000_una_tx"      est_lotes
   medir "3_INSERT_fila_autocommit"        est_fila
-  medir "4_ruta_transaccional_app"        est_app
   reset_ordenes
   rm -f "$DIR/.filafila.sql" "$DIR/.lotes.sql"
   echo "-> $T_ESTRAT"

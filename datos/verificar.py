@@ -121,9 +121,9 @@ def verificar_casos_en_datos(cur):
     print("\n== Casos borde sembrados en datos ==")
     casos = {
         "orden de 300 lineas": "SELECT count(*) = 300 FROM ordenes.lineas_orden WHERE orden_id = 1",
-        "contrato vencido ayer": "SELECT fecha_fin::date = (SELECT fecha_fin::date FROM proveedores.contratos WHERE id = 2) - 1 FROM proveedores.contratos WHERE id = 1",
-        "contrato vence hoy": "SELECT fecha_fin::time = TIME '12:00:00' FROM proveedores.contratos WHERE id = 2",
-        "ultima franja CEDI": "SELECT disponible AND cedi_id = 1 AND hora_inicio = TIME '17:00:00' FROM logistica.franjas_descargue WHERE id = 1",
+        "contrato vencido ayer": "SELECT COALESCE((SELECT fecha_fin::date = (SELECT fecha_fin::date FROM proveedores.contratos WHERE id = 2) - 1 FROM proveedores.contratos WHERE id = 1), FALSE)",
+        "contrato vence hoy": "SELECT COALESCE((SELECT fecha_fin::time = TIME '12:00:00' FROM proveedores.contratos WHERE id = 2), FALSE)",
+        "ultima franja CEDI": "SELECT COALESCE((SELECT disponible AND cedi_id = 1 AND hora_inicio = TIME '17:00:00' FROM logistica.franjas_descargue WHERE id = 1), FALSE)",
         "proveedor sin contrato": "SELECT NOT EXISTS (SELECT 1 FROM proveedores.contratos WHERE proveedor_id = 100000)",
         "SKU fuera del catalogo": "SELECT EXISTS (SELECT 1 FROM ordenes.lineas_orden WHERE sku_codigo = 'SKU-EDGE-FUERA-CATALOGO')",
         "proveedor hot": "SELECT count(*) >= 5000 FROM ordenes.ordenes WHERE proveedor_id = 3",
