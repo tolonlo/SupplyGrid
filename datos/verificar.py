@@ -100,17 +100,42 @@ def ordenes_por_dia(cur):
 
 def verificar_casos_borde():
     print("\n== Casos borde (8 exigidos) ==")
+    resultado = True
     try:
         with open("datos/salida/casos-borde.txt", encoding="utf-8") as f:
-            lineas = [l.strip() for l in f if l.strip()]
-        if len(lineas) >= 8:
-            print(f"  {len(lineas)} casos borde documentados -> PASA")
+            lineas = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        if len(lineas) == 8:
+            print("  8 casos borde documentados -> PASA")
         else:
-            print(f"  Solo {len(lineas)} de 8 casos borde documentados -> FALLA")
+            resultado = False
+            print(f"  {len(lineas)} de 8 casos borde documentados -> FALLA")
         for l in lineas:
             print(f"    {l}")
     except FileNotFoundError:
+        resultado = False
         print("  casos-borde.txt no existe todavia (lo agrega Ema en E2-02b) -> PENDIENTE")
+    return resultado
+
+
+def verificar_casos_en_datos(cur):
+    print("\n== Casos borde sembrados en datos ==")
+    casos = {
+        "orden de 300 lineas": "SELECT count(*) = 300 FROM ordenes.lineas_orden WHERE orden_id = 1",
+        "contrato vencido ayer": "SELECT fecha_fin::date = (SELECT fecha_fin::date FROM proveedores.contratos WHERE id = 2) - 1 FROM proveedores.contratos WHERE id = 1",
+        "contrato vence hoy": "SELECT fecha_fin::time = TIME '12:00:00' FROM proveedores.contratos WHERE id = 2",
+        "ultima franja CEDI": "SELECT disponible AND cedi_id = 1 AND hora_inicio = TIME '17:00:00' FROM logistica.franjas_descargue WHERE id = 1",
+        "proveedor sin contrato": "SELECT NOT EXISTS (SELECT 1 FROM proveedores.contratos WHERE proveedor_id = 100000)",
+        "SKU fuera del catalogo": "SELECT EXISTS (SELECT 1 FROM ordenes.lineas_orden WHERE sku_codigo = 'SKU-EDGE-FUERA-CATALOGO')",
+        "proveedor hot": "SELECT count(*) >= 5000 FROM ordenes.ordenes WHERE proveedor_id = 3",
+        "mes sin ordenes": "SELECT NOT EXISTS (SELECT 1 FROM ordenes.ordenes WHERE proveedor_id = 15000 AND fecha_orden >= TIMESTAMP '2026-08-01' AND fecha_orden < TIMESTAMP '2026-09-01')",
+    }
+    resultado = True
+    for nombre, consulta in casos.items():
+        cur.execute(consulta)
+        pasa = bool(cur.fetchone()[0])
+        resultado = resultado and pasa
+        print(f"  {nombre:<28} -> {'PASA' if pasa else 'FALLA'}")
+    return resultado
 
 
 def checksum_determinismo(cur):
@@ -120,8 +145,16 @@ def checksum_determinismo(cur):
     """)
     claves = "".join(r[0] for r in cur.fetchall())
     h = hashlib.md5(claves.encode("utf-8")).hexdigest()
-    print(f"  md5(idempotency_key ordenadas por id) = {h}")
-    print("  Corre el mismo seed dos veces y compara este hash a mano: debe ser identico.")
+    ruta = "datos/salida/checksum_ordenes.txt"
+    try:
+        with open(ruta, encoding="utf-8") as archivo:
+            esperado = archivo.read().strip()
+        pasa = h == esperado
+        print(f"  md5(idempotency_key ordenadas por id) = {h} -> {'PASA' if pasa else 'FALLA'}")
+        return pasa
+    except FileNotFoundError:
+        print(f"  md5(idempotency_key ordenadas por id) = {h} -> PENDIENTE (falta {ruta})")
+        return False
 
 
 def main():
@@ -131,11 +164,14 @@ def main():
     volumen_ok = verificar_volumen(cur)
     verificar_distribucion(cur)
     ordenes_por_dia(cur)
-    verificar_casos_borde()
-    checksum_determinismo(cur)
+    casos_documentados_ok = verificar_casos_borde()
+    casos_datos_ok = verificar_casos_en_datos(cur)
+    checksum_ok = checksum_determinismo(cur)
 
     print("\n== Resumen ==")
-    print("Volumen minimo: " + ("PASA" if volumen_ok else "FALLA (esperado hasta que E2-02b suba el volumen real)"))
+    todo_ok = volumen_ok and casos_documentados_ok and casos_datos_ok and checksum_ok
+    print("Volumen minimo: " + ("PASA" if volumen_ok else "FALLA"))
+    print("Verificacion completa: " + ("PASA" if todo_ok else "FALLA"))
 
     cur.close()
     conn.close()

@@ -38,8 +38,8 @@ CREATE TABLE proveedores.contratos (
     id              BIGSERIAL PRIMARY KEY,
     proveedor_id    BIGINT          NOT NULL
                         REFERENCES proveedores.proveedores(id),
-    fecha_inicio    DATE            NOT NULL,
-    fecha_fin       DATE            NOT NULL,
+    fecha_inicio    TIMESTAMP       NOT NULL,
+    fecha_fin       TIMESTAMP       NOT NULL,
     estado          VARCHAR(20)     NOT NULL DEFAULT 'VIGENTE'
 );
 -- Q1: "Validar proveedor y contrato vigente por proveedor_id y fecha".

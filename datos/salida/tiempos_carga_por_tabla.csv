@@ -1,0 +1,10 @@
+tabla,filas,segundos,filas_por_segundo
+proveedores.proveedores,100000,0.376,265957
+proveedores.contratos,15000,0.339,44248
+catalogo.catalogo_sku,400000,0.866,461894
+logistica.franjas_descargue,150000,0.314,477707
+ordenes.ordenes,500000,1.898,263435
+ordenes.lineas_orden,3000000,47.239,63507
+auditoria.eventos,800000,1.445,553633
+creacion_de_7_indices,,1.774,
+TOTAL,,59.484,

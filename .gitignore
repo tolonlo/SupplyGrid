@@ -31,4 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
-datos/salida/
+datos/salida/*
+!datos/salida/comparacion_estrategias.csv
+!datos/salida/metricas_generacion.csv
+!datos/salida/tiempos_carga_por_tabla.csv
+!datos/salida/checksum_ordenes.txt
+!datos/salida/casos-borde.txt

@@ -1,0 +1,5 @@
+estrategia,filas,segundos,filas_por_segundo
+1_COPY_masivo,50000,0.389,128535
+2_INSERT_lotes_1000_una_tx,50000,0.778,64267
+3_INSERT_fila_autocommit,50000,112.996,442
+4_ruta_transaccional_app,50000,206.449,242

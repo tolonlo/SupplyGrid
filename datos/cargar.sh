@@ -84,8 +84,8 @@ PY
 }
 
 est_copy()  { $PSQL -c "COPY ordenes.ordenes ($COLS_ORD) FROM STDIN WITH (FORMAT csv, HEADER true)" < "$SUBCONJUNTO"; }
-est_lotes() { $PSQL -f "$DIR/.lotes.sql"; }      # 1 transaccion, lotes de 1000 filas
-est_fila()  { $PSQL -f "$DIR/.filafila.sql"; }   # autocommit: 1 commit (fsync) por fila
+est_lotes() { $PSQL < "$DIR/.lotes.sql"; }        # 1 transaccion, lotes de 1000 filas
+est_fila()  { $PSQL < "$DIR/.filafila.sql"; }     # autocommit: 1 commit (fsync) por fila
 est_app()   { python3 datos/bench_app.py "$SUBCONJUNTO" "$APP_URL"; }
 
 medir() {  # $1 = nombre, resto = comando

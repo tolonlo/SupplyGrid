@@ -1,0 +1,9 @@
+# IDs sembrados y patologia que reproducen
+CASO-01 orden=1 lineas=300: Una orden de 300 lineas rompe supuestos de tamano de transaccion y payload.
+CASO-02 contrato=1: Un contrato vencido ayer reproduce lecturas obsoletas y carreras durante la validacion de vigencia.
+CASO-03 contrato=2 vence=mediodia: Un contrato que vence hoy al mediodia reproduce la frontera temporal de la validacion.
+CASO-04 franja=1 cedi=1 ultima=17:00: La ultima franja disponible del dia reproduce concurrencia sobre un recurso escaso.
+CASO-05 proveedor=100000: Un proveedor sin contrato vigente reproduce el camino de rechazo.
+CASO-06 sku=SKU-EDGE-FUERA-CATALOGO: Un SKU fuera del catalogo negociado del proveedor reproduce el camino de rechazo.
+CASO-07 proveedor=3 ordenes>=5000: Un proveedor hot reproduce una particion sesgada y presion sobre la cache.
+CASO-08 proveedor=15000 mes=2026-08: Un mes sin ordenes para un proveedor activo rompe promedios y reportes OTIF.
