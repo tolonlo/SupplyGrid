@@ -96,8 +96,11 @@ def validar_parametros(args):
     errores = []
     if args.n_contratos < 3:
         errores.append("--n-contratos debe ser >= 3 (el proveedor 3 es el caso borde 'caliente').")
-    if args.n_proveedores < args.n_contratos:
-        errores.append("--n-proveedores debe ser >= --n-contratos.")
+    if args.n_proveedores <= args.n_contratos:
+        errores.append(
+            "--n-proveedores debe ser > --n-contratos "
+            "(se necesita al menos un proveedor SIN contrato para el CASO-05)."
+        )
     if args.n_sku < args.n_contratos:
         errores.append("--n-sku debe ser >= --n-contratos (cada contrato necesita al menos un SKU).")
     if args.n_ordenes < 296:
