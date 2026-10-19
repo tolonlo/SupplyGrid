@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 
 from chaos.config import ChaosConfigManager
 from chaos.engine import ChaosDatabaseError
+from chaos import observabilidad as obs
 
 from experimentos.runner import (
     ROOT,
@@ -131,6 +132,7 @@ def medir_b1(conexion, parametros_q1, reintentos=False):
                         * (2 ** (intento - 1))
                     )
 
+                    obs.reintento("Q1", intento, type(error).__name__)
                     time.sleep(espera)
 
             except Exception as error:
@@ -249,6 +251,7 @@ def ejecutar_repeticion(
 
     print("=" * 65)
 
+    obs.iniciar()
     conexion = conectar(
         con_chaos=True
     )
@@ -256,6 +259,7 @@ def ejecutar_repeticion(
     try:
 
         print("\nFASE CONTROL")
+        obs.abrir_fase("EXP-02", "control")
 
         control = medir_b1(
             conexion,
@@ -273,6 +277,7 @@ def ejecutar_repeticion(
             control["errores"]
         )
 
+        obs.cerrar_fase()
         orden = (
             ["con_falla", "con_correccion"]
             if numero % 2
@@ -281,6 +286,7 @@ def ejecutar_repeticion(
 
         resultados = {}
 
+        obs.falla(EXPERIMENTO["fault_id"], True)
         manager.set_fault_state(
             EXPERIMENTO["fault_id"],
             True,
@@ -290,6 +296,7 @@ def ejecutar_repeticion(
         try:
 
             for fase in orden:
+                obs.abrir_fase("EXP-02", fase)
 
                 usar_reintentos = (
                     fase == "con_correccion"
@@ -307,6 +314,7 @@ def ejecutar_repeticion(
                 )
 
                 resultados[fase] = resultado
+                obs.cerrar_fase()
 
                 print(
                     "  Disponibilidad:",
@@ -325,6 +333,7 @@ def ejecutar_repeticion(
 
         finally:
 
+            obs.falla(EXPERIMENTO["fault_id"], False)
             manager.set_fault_state(
                 EXPERIMENTO["fault_id"],
                 False

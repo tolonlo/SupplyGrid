@@ -210,7 +210,15 @@ python -m chaos.cli reset
 
 ### 4. Pruebas de aceptación automatizadas
 ```bash
-python -m unittest tests/test_chaos_acceptance.py -v
+python -m unittest tests/test_chaos_acceptance.py tests/test_observabilidad.py -v
 ```
 
-Para documentación exhaustiva, consultar [docs/GUIA_FALLAS_REPRODUCIBILIDAD_E3.md](docs/GUIA_FALLAS_REPRODUCIBILIDAD_E3.md).
+### 5. Observabilidad (Persona B)
+```bash
+python -m experimentos.demo_observabilidad
+python -m experimentos.analizar_observabilidad
+```
+
+Los eventos quedan en `experimentos/logs/eventos.jsonl`. Informe: [docs/INFORME_PERSONA_B_E3.md](docs/INFORME_PERSONA_B_E3.md).
+
+Para documentación de fallas y Momento 1, consultar [docs/GUIA_FALLAS_REPRODUCIBILIDAD_E3.md](docs/GUIA_FALLAS_REPRODUCIBILIDAD_E3.md).

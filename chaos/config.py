@@ -7,12 +7,15 @@ y API programática en memoria, sin requerir redespliegue ni reinicio de servici
 import json
 import os
 import threading
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from .models import ChaosGlobalConfig, FaultConfig, FaultFamily, FaultType
 
 DEFAULT_CONFIG_PATH = Path("chaos_config.json")
+# Segundos minimos entre revisiones del archivo (hot reload). 0 = revisar siempre.
+INTERVALO_REVISION_S = float(os.environ.get("CHAOS_REVISION_S", "0.05"))
 
 
 def _crear_catalogo_predeterminado() -> Dict[str, FaultConfig]:
@@ -149,6 +152,7 @@ class ChaosConfigManager:
         self._lock = threading.RLock()
         self._last_mtime: Optional[float] = None
         self._cached_config: Optional[ChaosGlobalConfig] = None
+        self._ultima_revision: float = 0.0
         self._ensure_config_exists()
 
     def _ensure_config_exists(self) -> None:
@@ -227,6 +231,12 @@ class ChaosConfigManager:
     def get_config(self) -> ChaosGlobalConfig:
         """Obtiene la configuración actual. Recarga automáticamente si el archivo fue modificado."""
         with self._lock:
+            ahora = time.monotonic()
+            if (self._cached_config is not None
+                    and ahora - self._ultima_revision < INTERVALO_REVISION_S):
+                return self._cached_config
+            self._ultima_revision = ahora
+
             if not self.config_path.exists():
                 self._ensure_config_exists()
 

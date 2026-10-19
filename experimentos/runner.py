@@ -41,6 +41,7 @@ import psycopg2
 
 from chaos.config import ChaosConfigManager
 from chaos.interceptor import connect_with_chaos
+from chaos import observabilidad as obs
 
 from datos.medir_consultas import (
     obtener_proveedores,
@@ -435,6 +436,7 @@ def verificar_estado_inicial(manager):
 
 
 def activar_falla(manager, experimento):
+    obs.falla(experimento["fault_id"], True)
 
     manager.set_fault_state(
         experimento["fault_id"],
@@ -445,6 +447,7 @@ def activar_falla(manager, experimento):
 
 
 def desactivar_falla(manager, experimento):
+    obs.falla(experimento["fault_id"], False)
 
     manager.set_fault_state(
         experimento["fault_id"],
@@ -485,6 +488,7 @@ def ejecutar_repeticion(
     print("=" * 65)
 
     print("\nFASE CONTROL")
+    obs.abrir_fase(experimento["id"], "control")
 
     control = medir(
         parametros_q1,
@@ -499,6 +503,7 @@ def ejecutar_repeticion(
         f"  p99: {control['p99_ms']:.4f} ms"
     )
 
+    obs.cerrar_fase()
     if numero % 2 == 1:
 
         orden = [
@@ -523,6 +528,7 @@ def ejecutar_repeticion(
         )
 
         for fase in orden:
+            obs.abrir_fase(experimento["id"], fase)
 
             if fase == "con_falla":
 
@@ -546,6 +552,7 @@ def ejecutar_repeticion(
                 )
 
             resultados_fases[fase] = resultado
+            obs.cerrar_fase()
 
             print(
                 f"  p95: {resultado['p95_ms']:.4f} ms"
@@ -827,6 +834,7 @@ def ejecutar():
     )
 
     verificar_estado_inicial(manager)
+    obs.iniciar()
 
     identificador_ejecucion = (
         datetime.now(timezone.utc)

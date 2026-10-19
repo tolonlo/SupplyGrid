@@ -1,0 +1,135 @@
+{
+  "total_eventos": 1283,
+  "por_tipo": {
+    "obs_iniciada": 11,
+    "circuito": 23,
+    "fase_inicio": 44,
+    "fase_fin": 43,
+    "falla_activada": 19,
+    "inyeccion": 608,
+    "falla_desactivada": 19,
+    "operacion": 327,
+    "reintento": 134,
+    "kill_switch": 9,
+    "perturbaciones_detenidas": 46
+  },
+  "inyecciones_por_falla": {
+    "A1_latencia_jitter": 276,
+    "B1_pool_agotado": 332
+  },
+  "errores_por_tipo": {
+    "ChaosDatabaseError": 327
+  },
+  "cadenas_inyeccion_error": 327,
+  "ejemplos_localizacion": [
+    {
+      "trace_id": "4d33d41274194534830707a06eae1187",
+      "fault_id": "B1_pool_agotado",
+      "target": "Q1",
+      "error": "ChaosDatabaseError",
+      "experimento": "DEMO-02",
+      "fase": "con_falla"
+    },
+    {
+      "trace_id": "6002e9d718af43578fe8dc8e42543799",
+      "fault_id": "B1_pool_agotado",
+      "target": "Q1",
+      "error": "ChaosDatabaseError",
+      "experimento": "DEMO-02",
+      "fase": "con_falla"
+    },
+    {
+      "trace_id": "5b6d58e476684c7f945d600e628512ba",
+      "fault_id": "B1_pool_agotado",
+      "target": "Q1",
+      "error": "ChaosDatabaseError",
+      "experimento": "DEMO-02",
+      "fase": "con_falla"
+    },
+    {
+      "trace_id": "9e9dd5101c2843939fc9e90caee006ae",
+      "fault_id": "B1_pool_agotado",
+      "target": "Q1",
+      "error": "ChaosDatabaseError",
+      "experimento": "DEMO-02",
+      "fase": "con_falla"
+    },
+    {
+      "trace_id": "22df4f87712b4b51ae3be4e2c847ed5f",
+      "fault_id": "B1_pool_agotado",
+      "target": "Q1",
+      "error": "ChaosDatabaseError",
+      "experimento": "DEMO-02",
+      "fase": "con_falla"
+    },
+    {
+      "trace_id": "3864709b6b4e4ff4bf54a53bbf4a40ee",
+      "fault_id": "B1_pool_agotado",
+      "target": "Q1",
+      "error": "ChaosDatabaseError",
+      "experimento": "DEMO-02",
+      "fase": "con_falla"
+    },
+    {
+      "trace_id": "fa04debcef2e4630b13c187dc8317e29",
+      "fault_id": "B1_pool_agotado",
+      "target": "Q1",
+      "error": "ChaosDatabaseError",
+      "experimento": "DEMO-02",
+      "fase": "con_falla"
+    },
+    {
+      "trace_id": "071184d3cf3a481a978fb134b29d500c",
+      "fault_id": "B1_pool_agotado",
+      "target": "Q1",
+      "error": "ChaosDatabaseError",
+      "experimento": "DEMO-02",
+      "fase": "con_falla"
+    }
+  ],
+  "eventos_por_experimento_fase": {
+    "DEMO-01|control|fase_inicio": 7,
+    "DEMO-01|control|fase_fin": 7,
+    "DEMO-01|con_falla|fase_inicio": 7,
+    "DEMO-01|con_falla|inyeccion": 270,
+    "DEMO-01|con_falla|fase_fin": 6,
+    "DEMO-01|con_correccion|fase_inicio": 6,
+    "DEMO-01|con_correccion|inyeccion": 6,
+    "DEMO-01|con_correccion|fase_fin": 6,
+    "DEMO-02|con_falla|fase_inicio": 6,
+    "DEMO-02|con_falla|inyeccion": 90,
+    "DEMO-02|con_falla|operacion": 90,
+    "DEMO-02|con_falla|fase_fin": 6,
+    "DEMO-02|reintentos|fase_inicio": 6,
+    "DEMO-02|reintentos|inyeccion": 149,
+    "DEMO-02|reintentos|operacion": 149,
+    "DEMO-02|reintentos|reintento": 134,
+    "DEMO-02|reintentos|fase_fin": 6,
+    "DEMO-02|circuito|fase_inicio": 6,
+    "DEMO-02|circuito|inyeccion": 88,
+    "DEMO-02|circuito|operacion": 88,
+    "DEMO-02|circuito|fase_fin": 6,
+    "DEMO-KS|kill_switch|fase_inicio": 6,
+    "DEMO-KS|kill_switch|fase_fin": 6,
+    "DEMO-01|con_falla|falla_desactivada": 1,
+    "DEMO-02|circuito|circuito": 7
+  },
+  "senales_utiles": {
+    "inyeccion": "Localiza la falla (fault_id + target) en el instante en que se aplicó.",
+    "operacion": "Une el error observado (tipo, duración, target) con el trace_id.",
+    "reintento": "Muestra si la corrección actuó y cuántas veces.",
+    "circuito": "Explica rechazos rápidos cuando el error deja de ser transitorio.",
+    "falla_activada": "Marca el inicio controlado de la perturbación.",
+    "falla_desactivada": "Marca la reversión; permite comprobar el kill/reset.",
+    "kill_switch": "Confirma que la prioridad absoluta quedó registrada.",
+    "fase_inicio": "Delimita control / falla / corrección para comparar.",
+    "fase_fin": "Cierra la ventana de medición con duración y recursos."
+  },
+  "senales_poco_utiles": {
+    "obs_iniciada": "Solo confirma que el canal existe; no localiza una falla.",
+    "cache_hit": "En modo 'todas' inunda el log y no distingue causa.",
+    "cache_miss": "Igual que cache_hit: el hit_rate consolidado basta.",
+    "perturbaciones_detenidas": "Aparece al limpiar hilos; no implica kill switch real."
+  },
+  "criterio": "Una señal es útil si permite detectar el síntoma, localizar la falla (fault_id/target/fase) y explicar la corrección. Es poco útil si no distingue causa o si su volumen oculta la secuencia causal."
+}

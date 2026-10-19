@@ -113,6 +113,44 @@ Se utilizaron los siguientes indicadores:
 
 En los experimentos de rechazos y errores 503, los percentiles de latencia corresponden a operaciones exitosas. Esto debe considerarse al interpretar los resultados.
 
+### 4.2. Momento 1 · Línea base y Tabla de Objetivos de Rendimiento (E3 ≤ 90% de E2)
+
+En cumplimiento del Momento 1 de la rúbrica, se verificó el volumen inicial de 4.965.000 tuplas con la semilla 42 y el checksum MD5 `1c1969f67843450e37fc74df05d87db1` (`datos/reconstruir_e2.py --verify`). 
+
+A continuación se presenta la tabla canónica de objetivos de rendimiento frente al Entregable 2, calculando $\text{Objetivo E3} = \text{Valor E2} \times 0.90$ para cada métrica aplicable:
+
+| Consulta | Escenario | Métrica | Valor E2 (ms) | Objetivo E3 (≤ 90% de E2) | Línea Base Momento 1 (ms) | ¿Cumple Meta ≤ 90%? | Variación vs E2 |
+|---|---|---|---:|---:|---:|:---:|---:|
+| **Q1** | frío | p95 | 0,164 | **0,148** | 0,802 | No | +389,0 % |
+| **Q1** | frío | p99 | 0,215 | **0,194** | 0,972 | No | +352,1 % |
+| **Q1** | caliente | p95 | 0,149 | **0,134** | 0,686 | No | +360,4 % |
+| **Q1** | caliente | p99 | 0,169 | **0,152** | 0,901 | No | +433,1 % |
+| **Q2** | frío | p95 | 0,188 | **0,169** | 0,870 | No | +362,8 % |
+| **Q2** | frío | p99 | 0,255 | **0,230** | 1,023 | No | +301,2 % |
+| **Q2** | caliente | p95 | 0,177 | **0,159** | 0,821 | No | +363,8 % |
+| **Q2** | caliente | p99 | 0,196 | **0,176** | 1,041 | No | +431,1 % |
+| **Q3** | frío | p95 | 0,544 | **0,490** | 1,503 | No | +176,3 % |
+| **Q3** | frío | p99 | 0,725 | **0,652** | 1,644 | No | +126,8 % |
+| **Q3** | caliente | p95 | 0,524 | **0,472** | 1,393 | No | +165,8 % |
+| **Q3** | caliente | p99 | 0,599 | **0,539** | 1,645 | No | +174,6 % |
+| **Q4** | frío | p95 | 0,843 | **0,759** | 2,483 | No | +194,5 % |
+| **Q4** | frío | p99 | 0,956 | **0,860** | 3,115 | No | +225,8 % |
+| **Q4** | caliente | **p95** | **7,149** | **6,434** | **5,683** | **SÍ (SUPERADA)** | **−20,51 %** |
+| **Q4** | caliente | **p99** | **10,186** | **9,167** | **7,789** | **SÍ (SUPERADA)** | **−23,53 %** |
+| **Q5** | frío | p95 | 0,169 | **0,152** | 0,793 | No | +369,2 % |
+| **Q5** | frío | p99 | 0,184 | **0,166** | 1,121 | No | +509,2 % |
+| **Q5** | caliente | p95 | 0,598 | **0,538** | 1,334 | No | +123,1 % |
+| **Q5** | caliente | p99 | 0,712 | **0,641** | 1,641 | No | +130,5 % |
+
+**Checklist del Momento 1 (Rúbrica Sección 10):**
+- [x] Corrida canónica del E2 identificada (`RESULTADOS_E2_05.md`).
+- [x] Filas por entidad del volumen inicial conocidas (4.965.000 tuplas).
+- [x] Seed/parámetros y condiciones conservadas (Seed 42, 200 iteraciones).
+- [x] Estado inicial reproducible (`datos/reconstruir_e2.py --verify`).
+- [x] Métricas comparables del E2 registradas (`metricas_q1_q5.csv`).
+- [x] Objetivo calculado = valor E2 × 0,90 (`tabla_objetivos_e3.csv`).
+- [x] Comparación rigurosa conservando consulta, escenario y métrica.
+
 ---
 
 ## 5. Resultados experimentales
@@ -259,6 +297,15 @@ En EXP-02 y EXP-04, las correcciones se orientaron a recuperar operaciones que i
 
 En consecuencia, **no existe una única métrica suficiente para determinar la efectividad de una estrategia de mitigación**. Una corrección puede ser favorable para la disponibilidad y desfavorable para la latencia.
 
+### 6.1. Matriz Consolidada por Experimento (Rúbrica Sección 8)
+
+| ID | Familia | Falla Inyectada | Configuración | Predicción Previa | Resultado Medido (Mediana) | Evidencia Observable | Aprendizaje Principal |
+|:---:|:---:|---|---|---|---|---|---|
+| **EXP-01** | Latencia | A1: Latencia fija + jitter | `mean_ms: 25`<br>`jitter_ms: 5`<br>`traffic_pct: 1.0` | El p95 aumentará en ~25–30 ms. La caché TTL absorberá consultas repetidas reduciendo p95 y elevando throughput. | Control: 0,37 ms<br>Falla: 42,98 ms<br>Caché: 38,43 ms<br>Tput: +77,45 % | Logs JSONL con `trace_id`. Gráficas: `EXP-01_p95.png`, `EXP-01_throughput.png`. 97.5% hit rate. | La caché amortigua la degradación del backend, pero no elimina la latencia de las claves que sufren cache miss. |
+| **EXP-02** | Base de Datos | B1: Saturación simulada de pool | `rejection_prob: 1.0`<br>`traffic_pct: 0.30` | La disponibilidad caerá en proporción al tráfico (~70%). Reintentos recuperarán disponibilidad a costa de latencia. | Control: 100 %<br>Falla: 73,50 %<br>Mitigado: 97,00 %<br>Errores: 53 $\to$ 6 | Eventos `inyeccion` $\to$ `operacion.error` correlacionados. Gráficas `EXP-02_disponibilidad.png`, `EXP-02_errores.png`. | Los reintentos salvan transacciones transitorias, pero el tiempo de backoff multiplica el p95 $\times 59$. Si la falla es persistente, se requiere un Circuit Breaker. |
+| **EXP-03** | Recursos | C1: Carga sintética de CPU | `intensity: 60%`<br>`threads: 2`<br>`duration: 5s` | Contención de CPU degradará p95 y throughput sin provocar errores. Bajar carga recuperará capacidad. | Control CPU: 20 %<br>Falla CPU: 99,5 %<br>Corrección: 50,4 %<br>p95: −64,86 % | Muestreo de CPU del proceso vía `psutil`. Gráficas `EXP-03_cpu.png`, `EXP-03_p95.png`, `EXP-03_throughput.png`. | La saturación de CPU produce lentitud silenciosa sin emitir excepciones de software. Es imprescindible medir métricas de proceso. |
+| **EXP-04** | Disponibilidad | D2: Errores HTTP 503 | `status_code: 503`<br>`traffic_pct: 0.25` | Disponibilidad bajará al ~75%. Reintentos recuperarán solicitudes fallidas. | Control: 100 %<br>Falla: 77,00 %<br>Mitigado: 98,50 %<br>Errores: 46 $\to$ 3 | Cadenas correlacionadas `inyeccion` $\to$ `ChaosHttpError`. Gráficas `EXP-04_disponibilidad.png`, `EXP-04_errores.png`. | Las fallas 503 responden efectivamente al retry con backoff exponencial cuando el upstream tiene fallos puntuales. |
+
 ---
 
 ## 7. Seguridad y validación
@@ -338,5 +385,8 @@ La evidencia del trabajo se encuentra organizada en las siguientes rutas del rep
 | `experimentos/graficar.py` | Generación de gráficas |
 | `experimentos/graficas/` | Nueve gráficas experimentales |
 | `experimentos/README.md` | Instrucciones de reproducción |
+| `chaos/observabilidad.py` | Logs, métricas y `trace_id` (Persona B) |
+| `experimentos/logs/` | JSONL, resumen de señales útiles/no útiles |
+| `docs/INFORME_PERSONA_B_E3.md` | Observabilidad, corrección y reexperimentación |
 
 ---

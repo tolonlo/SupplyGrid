@@ -12,6 +12,7 @@ import time
 from .config import ChaosConfigManager
 from .engine import ChaosEngine, ChaosException
 from .models import FaultFamily
+from . import observabilidad as obs
 
 
 def _cmd_status(manager: ChaosConfigManager):
@@ -82,6 +83,8 @@ def _cmd_deactivate(manager: ChaosConfigManager, fault_id: str):
 def _cmd_kill(manager: ChaosConfigManager):
     manager.set_kill_switch(True)
     engine = ChaosEngine(manager)
+    obs.iniciar()
+    obs.kill_switch("cli_kill")
     engine.stop_all_disturbances()
     print("=" * 70)
     print(" [KILL SWITCH ACTIVADO GLOBALMENTE] ")

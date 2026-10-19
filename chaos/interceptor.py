@@ -1,14 +1,16 @@
 """
 Interceptores y decoradores para inyección no intrusiva de fallas en SupplyGrid.
 Permite envolver conexiones de base de datos psycopg2 y llamadas de benchmarking.
+
+E3: cada operación interceptada pasa por observabilidad.observar_operacion, que mide
+duración y resultado y emite métricas, logs y trazas.
 """
 
 import functools
 import re
 from typing import Any, Callable, Optional
 
-import psycopg2
-
+from . import observabilidad as obs
 from .engine import ChaosEngine
 
 
@@ -56,7 +58,10 @@ class ChaosCursor:
         def _do_execute():
             return self._cursor.execute(sql, params)
 
-        return self._engine.intercept_operation(target_key, _do_execute)
+        return obs.observar_operacion(
+            target_key,
+            lambda: self._engine.intercept_operation(target_key, _do_execute),
+        )
 
     def executemany(self, sql: str, seq_of_params: Any) -> Any:
         target = _infer_target(sql)
@@ -64,7 +69,10 @@ class ChaosCursor:
         def _do_executemany():
             return self._cursor.executemany(sql, seq_of_params)
 
-        return self._engine.intercept_operation(target, _do_executemany)
+        return obs.observar_operacion(
+            target,
+            lambda: self._engine.intercept_operation(target, _do_executemany),
+        )
 
 
 class ChaosConnection:
@@ -87,14 +95,20 @@ class ChaosConnection:
 
 def connect_with_chaos(*args, **kwargs) -> ChaosConnection:
     """Punto de entrada transparente para psycopg2.connect con inyección de fallas."""
+    import psycopg2
+
     engine = ChaosEngine()
     # Si la falla D1 (partición de red) o B1 (pool agotado) está activa a nivel de conexión
     cfg = engine.config_manager.get_config()
     if not engine.is_kill_switch_active() and cfg.enabled:
-        for fault in cfg.faults.values():
-            if fault.enabled:
-                engine.check_availability_risk(fault, "connect")
-                engine.maybe_simulate_db_failure(fault, "connect")
+
+        def _chequear_conexion():
+            for fault in cfg.faults.values():
+                if fault.enabled:
+                    engine.check_availability_risk(fault, "connect")
+                    engine.maybe_simulate_db_failure(fault, "connect")
+
+        obs.observar_operacion("connect", _chequear_conexion)
 
     real_conn = psycopg2.connect(*args, **kwargs)
     return ChaosConnection(real_conn, engine)
@@ -106,6 +120,9 @@ def with_chaos(target_name: str):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             engine = ChaosEngine()
-            return engine.intercept_operation(target_name, func, *args, **kwargs)
+            return obs.observar_operacion(
+                target_name,
+                lambda: engine.intercept_operation(target_name, func, *args, **kwargs),
+            )
         return wrapper
     return decorator

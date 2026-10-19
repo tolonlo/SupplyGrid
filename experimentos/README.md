@@ -211,7 +211,34 @@ La configuración segura tiene:
 
 El mecanismo de kill switch permite interrumpir las perturbaciones y las pruebas de aceptación comprueban su prioridad y recuperación.
 
-## 11. Pruebas de aceptación
+## 11. Observabilidad (Persona B)
+
+Cada runner registra fases, activación de fallas, inyecciones, errores y reintentos en:
+
+```text
+experimentos/logs/eventos.jsonl
+```
+
+Por defecto solo se loguean errores (`OBS_LOG_OPS=errores`) para no alterar la medición. Cada operación interceptada lleva un `trace_id` compartido con el evento `inyeccion`, de modo que se puede localizar la falla que produjo un error.
+
+```bash
+python -m experimentos.demo_observabilidad
+python -m experimentos.analizar_observabilidad
+python -m pytest tests/test_observabilidad.py -q
+```
+
+El análisis clasifica señales útiles (`inyeccion`, `operacion`, `reintento`, `circuito`, `kill_switch`) y señales poco útiles (`cache_hit` masivo, `obs_iniciada`). El informe está en `docs/INFORME_PERSONA_B_E3.md`.
+
+Métricas Prometheus y export OTLP son opcionales:
+
+```bash
+set OBS_METRICS_PORT=9464
+set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+La corrección oficial de EXP-01 es caché TTL; la de EXP-02 y EXP-04, reintentos acotados. `CircuitBreaker` en `experimentos/mitigaciones.py` es una corrección alternativa revalidada en el demo: corta la cascada cuando el error deja de ser transitorio.
+
+## 12. Pruebas de aceptación
 
 Ejecutar:
 
@@ -227,7 +254,7 @@ Resultado verificado:
 
 Las pruebas cubren configuración segura, activación y desactivación, kill switch, recuperación, cobertura de familias, validación de parámetros, inferencia de targets SQL y verificaciones de reproducibilidad de E2.
 
-## 12. Conclusión
+## 13. Conclusión
 
 Los cuatro experimentos permitieron observar degradaciones y evaluar correcciones bajo perturbaciones controladas.
 

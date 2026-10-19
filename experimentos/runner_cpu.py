@@ -29,6 +29,7 @@ import psutil
 
 from chaos.config import ChaosConfigManager
 from chaos.engine import ChaosEngine
+from chaos import observabilidad as obs
 
 from experimentos.runner import (
     ROOT,
@@ -264,6 +265,7 @@ def ejecutar_fase(
     """
 
     print(f"\nFASE: {nombre}")
+    obs.abrir_fase(EXPERIMENTO["id"], nombre)
 
     conexion = conectar(
         con_chaos=True
@@ -283,6 +285,7 @@ def ejecutar_fase(
 
         if intensidad is not None:
 
+            obs.falla(EXPERIMENTO["fault_id"], True)
             manager.set_fault_state(
                 EXPERIMENTO["fault_id"],
                 True,
@@ -325,6 +328,7 @@ def ejecutar_fase(
 
         engine.stop_all_disturbances()
 
+        obs.falla(EXPERIMENTO["fault_id"], False)
         manager.set_fault_state(
             EXPERIMENTO["fault_id"],
             False
@@ -367,6 +371,7 @@ def ejecutar_fase(
         f"{recursos['cpu_sistema_pct']['promedio']:.2f}%"
     )
 
+    obs.cerrar_fase()
     return resultado
 
 
@@ -622,6 +627,7 @@ def ejecutar():
         )
 
     engine = ChaosEngine(manager)
+    obs.iniciar()
 
     parametros_q1 = preparar_parametros_q1(
         repeticiones=200,

@@ -2,6 +2,9 @@
 Motor de ejecución de fallas configurables de SupplyGrid (ChaosEngine).
 Implementa las 4 familias de fallas con focalización, parametrización,
 reproducibilidad y reversibilidad inmediata mediante Kill Switch.
+
+E3: cada vez que una falla se aplica de verdad se emite un evento de observabilidad
+(obs.inyeccion), lo que permite localizar qué falla causó cada efecto.
 """
 
 import math
@@ -11,6 +14,7 @@ import threading
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from . import observabilidad as obs
 from .config import ChaosConfigManager
 from .models import FaultConfig, FaultFamily, FaultType
 
@@ -77,6 +81,8 @@ class ChaosEngine:
             self._stop_events.clear()
             self._active_burn_threads.clear()
             self._memory_buffers.clear()
+        obs.evento("perturbaciones_detenidas",
+                   kill_switch_activo=self.is_kill_switch_active())
 
     def should_inject(self, fault: FaultConfig, target: str, execution_id: Optional[int] = None) -> bool:
         """Determina si la falla debe aplicarse respetando focalización, tráfico y semilla."""
@@ -136,11 +142,13 @@ class ChaosEngine:
         step = 0.010
         while elapsed < delay_s:
             if self.is_kill_switch_active():
+                obs.inyeccion(fault, target, delay_ms=round(elapsed * 1000.0, 3), interrumpida=True)
                 return elapsed * 1000.0
             sleep_chunk = min(step, delay_s - elapsed)
             time.sleep(sleep_chunk)
             elapsed += sleep_chunk
 
+        obs.inyeccion(fault, target, delay_ms=round(elapsed * 1000.0, 3))
         return elapsed * 1000.0
 
     def check_controlled_timeout(self, fault: FaultConfig, elapsed_ms: float, target: str, execution_id: Optional[int] = None) -> None:
@@ -150,6 +158,7 @@ class ChaosEngine:
 
         timeout_ms = float(fault.parameters.get("timeout_ms", 15.0))
         if elapsed_ms > timeout_ms:
+            obs.inyeccion(fault, target, elapsed_ms=round(elapsed_ms, 3), timeout_ms=timeout_ms)
             raise ChaosTimeoutError(
                 f"[Falla A2] Timeout controlado excedido en target '{target}': "
                 f"{elapsed_ms:.2f} ms > {timeout_ms:.2f} ms"
@@ -165,6 +174,7 @@ class ChaosEngine:
                 "error_message",
                 "FATAL: remaining connection slots are reserved for non-replication superuser connections"
             )
+            obs.inyeccion(fault, target)
             raise ChaosDatabaseError(f"[Falla B1] Pool de conexiones agotado: {msg}")
 
         elif fault.fault_type == FaultType.RESOURCE_LOCK:
@@ -175,10 +185,12 @@ class ChaosEngine:
             step = 0.010
             while elapsed < delay_s:
                 if self.is_kill_switch_active():
+                    obs.inyeccion(fault, target, espera_ms=round(elapsed * 1000.0, 3), interrumpida=True)
                     return
                 sleep_chunk = min(step, delay_s - elapsed)
                 time.sleep(sleep_chunk)
                 elapsed += sleep_chunk
+            obs.inyeccion(fault, target, espera_ms=round(elapsed * 1000.0, 3))
 
     def start_cpu_burn(self, fault: FaultConfig) -> None:
         """Familia C1: Inicia hilos de cómputo intensivo para saturar CPU."""
@@ -212,6 +224,8 @@ class ChaosEngine:
                 self._active_burn_threads.append(t)
                 t.start()
 
+        obs.inyeccion(fault, "*", intensity_pct=intensity * 100.0, duration_s=duration_s, threads=n_threads)
+
     def apply_memory_pressure(self, fault: FaultConfig) -> None:
         """Familia C2: Asigna búferes de memoria controlados."""
         if self.is_kill_switch_active():
@@ -229,6 +243,8 @@ class ChaosEngine:
             with self._lock:
                 self._memory_buffers.append(buf)
 
+            obs.inyeccion(fault, "*", size_mb=size_mb, duration_s=duration_s)
+
             # Programar liberación automática
             def _releaser():
                 time.sleep(duration_s)
@@ -238,7 +254,7 @@ class ChaosEngine:
 
             threading.Thread(target=_releaser, daemon=True).start()
         except MemoryError:
-            pass
+            obs.evento("memoria_no_asignada", size_mb=size_mb)
 
     def check_availability_risk(self, fault: FaultConfig, target: str, execution_id: Optional[int] = None) -> None:
         """Familia D: Simula partición de red o error 5xx de servicio externo."""
@@ -246,6 +262,7 @@ class ChaosEngine:
             return
 
         if fault.fault_type == FaultType.NETWORK_PARTITION:
+            obs.inyeccion(fault, target)
             raise ChaosDatabaseError(
                 "[Falla D1] Partición de red: connection to server was lost / socket closed"
             )
@@ -253,6 +270,7 @@ class ChaosEngine:
         elif fault.fault_type == FaultType.EXTERNAL_5XX:
             status = int(fault.parameters.get("status_code", 503))
             msg = fault.parameters.get("message", "Service Unavailable")
+            obs.inyeccion(fault, target, status_code=status)
             raise ChaosHttpError(status, f"[Falla D2] {msg}")
 
     def intercept_operation(self, target: str, operation: Callable[..., Any], *args, **kwargs) -> Any:

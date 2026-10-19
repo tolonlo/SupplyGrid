@@ -18,6 +18,7 @@ SupplyGrid/
 │   ├── config.py                    # Gestor dinámico con hot reload vía mtime
 │   ├── engine.py                    # Motor de ejecución de las 4 familias de fallas y Kill Switch
 │   ├── interceptor.py               # Interceptores para psycopg2 y decoradores de targets
+│   ├── observabilidad.py            # Logs JSONL, métricas y trace_id (Persona B)
 │   └── cli.py                       # CLI administrativo dinámico (status, activate, kill, etc.)
 ├── chaos_config.json                # Archivo de configuración en caliente (recarga sin redespliegue)
 ├── datos/
@@ -32,7 +33,8 @@ SupplyGrid/
 │       ├── tabla_objetivos_e3.csv         # Tabla oficial de metas E3 = 90% de E2
 │       └── metricas_linea_base_e3.csv     # Métricas de percentiles medidas en Momento 1
 ├── tests/
-│   └── test_chaos_acceptance.py     # Suite de 11 pruebas automatizadas de aceptación
+│   ├── test_chaos_acceptance.py     # Suite de 11 pruebas automatizadas de aceptación
+│   └── test_observabilidad.py       # Correlación trace_id y circuit breaker
 └── Makefile                         # Metas estandarizadas del proyecto
 ```
 
