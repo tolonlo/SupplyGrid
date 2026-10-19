@@ -167,3 +167,50 @@ make datos
 
 Las migraciones de `src/` pueden crear la misma estructura al iniciar la
 aplicacion, pero no son necesarias para el flujo documentado aqui.
+
+## Entregable 3: Fallas Configurables, Reproducibilidad y Momento 1
+
+Para el Entregable 3 se implementó el laboratorio de fallas dinámicas (`chaos/`), la reconstrucción canónica del E2 y la línea base del Momento 1.
+
+### 1. Reconstrucción y verificación del E2 (Momento 1)
+```bash
+# Reconstruir estado limpio determinista (seed 42, 4.965.000 filas)
+python datos/reconstruir_e2.py --rebuild --seed 42 --clean
+
+# Verificar estado sin modificar la base de datos (conteos + checksums)
+python datos/reconstruir_e2.py --verify
+```
+
+### 2. Generación de Línea Base del Momento 1 y Objetivos E3
+```bash
+# Mide Q1-Q5 sin fallas activas y calcula metas del 10% (0.90 * E2)
+python datos/generar_linea_base.py
+```
+Los resultados quedan registrados en:
+- `datos/salida/manifest_e2_referencia.json`
+- `datos/salida/baseline_momento1.json`
+- `datos/salida/tabla_objetivos_e3.csv`
+- `datos/salida/metricas_linea_base_e3.csv`
+
+### 3. Control dinámico de fallas (sin redespliegue)
+```bash
+# Consultar catálogo de 4 familias y estado
+python -m chaos.cli status
+
+# Activar falla en caliente (ejemplo: latencia con jitter)
+python -m chaos.cli activate A1_latencia_jitter -p mean_ms=30 jitter_ms=5
+
+# Kill switch global inmediato (anula toda perturbación)
+python -m chaos.cli kill
+python -m chaos.cli unkill
+
+# Restablecer a estado seguro (todo apagado)
+python -m chaos.cli reset
+```
+
+### 4. Pruebas de aceptación automatizadas
+```bash
+python -m unittest tests/test_chaos_acceptance.py -v
+```
+
+Para documentación exhaustiva, consultar [docs/GUIA_FALLAS_REPRODUCIBILIDAD_E3.md](docs/GUIA_FALLAS_REPRODUCIBILIDAD_E3.md).

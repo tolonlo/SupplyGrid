@@ -26,6 +26,16 @@ from pathlib import Path
 
 import psycopg2
 
+# Integración transparente con motor de fallas configurables (E3)
+try:
+    ROOT_DIR = Path(__file__).resolve().parent.parent
+    if str(ROOT_DIR) not in sys.path:
+        sys.path.insert(0, str(ROOT_DIR))
+    from chaos.interceptor import connect_with_chaos
+    CHAOS_DISPONIBLE = True
+except Exception:
+    CHAOS_DISPONIBLE = False
+
 REPETICIONES = 200
 SEED = 42
 
@@ -36,7 +46,8 @@ ARCHIVO_CRUDO = SALIDA / "metricas_q1_q5_crudas.csv"
 
 def conectar():
     try:
-        return psycopg2.connect(
+        connect_fn = connect_with_chaos if CHAOS_DISPONIBLE else psycopg2.connect
+        return connect_fn(
             host=os.environ.get("PGHOST", "localhost"),
             port=os.environ.get("PGPORT", "5432"),
             user=os.environ.get("PGUSER", "postgres"),

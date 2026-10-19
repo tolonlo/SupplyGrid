@@ -1,0 +1,47 @@
+{
+  "timestamp_utc": "2026-10-19T16:35:23.610609+00:00",
+  "seed": 42,
+  "is_canonical_seed": true,
+  "total_rows": 4965000,
+  "canonical_total_rows": 4965000,
+  "counts_by_table": {
+    "proveedores.proveedores": 100000,
+    "proveedores.contratos": 15000,
+    "catalogo.catalogo_sku": 400000,
+    "logistica.franjas_descargue": 150000,
+    "ordenes.ordenes": 500000,
+    "ordenes.lineas_orden": 3000000,
+    "auditoria.eventos": 800000
+  },
+  "counts_match_canonical": true,
+  "edge_cases": {
+    "CASO-01 orden_1_300_lineas": true,
+    "CASO-02 contrato_1_vencido_ayer": true,
+    "CASO-03 contrato_2_vence_hoy_mediodia": true,
+    "CASO-04 franja_1_ultima_17_00": true,
+    "CASO-05 proveedor_sin_contrato": true,
+    "CASO-06 sku_fuera_catalogo": true,
+    "CASO-07 proveedor_3_hot_5000_ordenes": true,
+    "CASO-08 proveedor_15000_mes_sin_ordenes": true
+  },
+  "edge_cases_all_pass": true,
+  "checksums": {
+    "historical_e2_idempotency_md5": "1c1969f67843450e37fc74df05d87db1",
+    "idempotency_md5_matches_reference": true,
+    "state_sha256_global": "df83236c281649ff744df363b8dd484d3ae58d0c575ec2f03426f48dbbaaa675",
+    "sha256_by_table": {
+      "proveedores.proveedores": "0b836b0087042cbb5424f60da2e47e5ee164fd8e32865c6036a33916166a9f28",
+      "proveedores.contratos": "f751d72dc7a7528a2ad1fbc6482e88ba23cffcc48010ac7fce2efb27f8135d29",
+      "catalogo.catalogo_sku": "0378c444043910693091c1d264daf3cbe71f75c9678d641099c46672cc915151",
+      "logistica.franjas_descargue": "8f8492f393ba51ee7ed14987fd06b1ddb3464abfc54bf4cf69709dac7ce99886",
+      "ordenes.ordenes": "2164e0cbcf595092bca792a0e4f29b2c962a5b8e15abae3eee7066214bb3d88f",
+      "ordenes.lineas_orden": "785793f2434828af2971c8cbfad6f02189f5d8284fcc9ac127e8b9058f03175e",
+      "auditoria.eventos": "458985ae3543d4e4fe6eeb80cd29e88f2a49f74dafad330b85a88a2e4a437224"
+    }
+  },
+  "environment": {
+    "pghost": "localhost",
+    "pgport": "5432",
+    "pgdatabase": "supplygrid_db"
+  }
+}

@@ -1,0 +1,311 @@
+{
+  "timestamp_utc": "2026-10-19T16:38:03.172544+00:00",
+  "deliverable": "Entregable 3 · Momento 1",
+  "system": "SupplyGrid",
+  "status": "BASELINE_SIN_FALLAS",
+  "faults_active": false,
+  "seed": 42,
+  "total_rows": 4965000,
+  "volume_by_table": {
+    "proveedores.proveedores": 100000,
+    "proveedores.contratos": 15000,
+    "catalogo.catalogo_sku": 400000,
+    "ordenes.ordenes": 500000,
+    "ordenes.lineas_orden": 3000000,
+    "logistica.franjas_descargue": 150000,
+    "auditoria.eventos": 800000
+  },
+  "metrics_summary": [
+    {
+      "consulta": "Q1",
+      "escenario": "frio",
+      "ejecuciones": 200,
+      "p50_ms": 0.3283,
+      "p95_ms": 0.8023,
+      "p99_ms": 0.9718,
+      "throughput_tps": 2610.2,
+      "errores": 0
+    },
+    {
+      "consulta": "Q2",
+      "escenario": "frio",
+      "ejecuciones": 200,
+      "p50_ms": 0.4285,
+      "p95_ms": 0.8696,
+      "p99_ms": 1.0225,
+      "throughput_tps": 2041.88,
+      "errores": 0
+    },
+    {
+      "consulta": "Q3",
+      "escenario": "frio",
+      "ejecuciones": 200,
+      "p50_ms": 1.0327,
+      "p95_ms": 1.503,
+      "p99_ms": 1.644,
+      "throughput_tps": 1058.58,
+      "errores": 0
+    },
+    {
+      "consulta": "Q4",
+      "escenario": "frio",
+      "ejecuciones": 200,
+      "p50_ms": 1.0538,
+      "p95_ms": 2.4829,
+      "p99_ms": 3.1149,
+      "throughput_tps": 817.69,
+      "errores": 0
+    },
+    {
+      "consulta": "Q5",
+      "escenario": "frio",
+      "ejecuciones": 200,
+      "p50_ms": 0.3427,
+      "p95_ms": 0.7933,
+      "p99_ms": 1.1205,
+      "throughput_tps": 2432.43,
+      "errores": 0
+    },
+    {
+      "consulta": "Q1",
+      "escenario": "caliente",
+      "ejecuciones": 200,
+      "p50_ms": 0.2935,
+      "p95_ms": 0.6858,
+      "p99_ms": 0.901,
+      "throughput_tps": 2863.63,
+      "errores": 0
+    },
+    {
+      "consulta": "Q2",
+      "escenario": "caliente",
+      "ejecuciones": 200,
+      "p50_ms": 0.3812,
+      "p95_ms": 0.8209,
+      "p99_ms": 1.0412,
+      "throughput_tps": 2209.14,
+      "errores": 0
+    },
+    {
+      "consulta": "Q3",
+      "escenario": "caliente",
+      "ejecuciones": 200,
+      "p50_ms": 0.9625,
+      "p95_ms": 1.3928,
+      "p99_ms": 1.6451,
+      "throughput_tps": 1129.93,
+      "errores": 0
+    },
+    {
+      "consulta": "Q4",
+      "escenario": "caliente",
+      "ejecuciones": 200,
+      "p50_ms": 4.4184,
+      "p95_ms": 5.6833,
+      "p99_ms": 7.7887,
+      "throughput_tps": 213.73,
+      "errores": 0
+    },
+    {
+      "consulta": "Q5",
+      "escenario": "caliente",
+      "ejecuciones": 200,
+      "p50_ms": 0.4887,
+      "p95_ms": 1.334,
+      "p99_ms": 1.6408,
+      "throughput_tps": 1486.17,
+      "errores": 0
+    }
+  ],
+  "performance_targets_e3": [
+    {
+      "consulta": "Q1",
+      "escenario": "frio",
+      "metrica": "p95",
+      "valor_e2_ms": 0.164,
+      "objetivo_e3_ms": 0.1476,
+      "baseline_e3_medido_ms": 0.8022699999999995,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q1",
+      "escenario": "frio",
+      "metrica": "p99",
+      "valor_e2_ms": 0.215,
+      "objetivo_e3_ms": 0.1935,
+      "baseline_e3_medido_ms": 0.9717769999999986,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q2",
+      "escenario": "frio",
+      "metrica": "p95",
+      "valor_e2_ms": 0.188,
+      "objetivo_e3_ms": 0.16920000000000002,
+      "baseline_e3_medido_ms": 0.8696149999999994,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q2",
+      "escenario": "frio",
+      "metrica": "p99",
+      "valor_e2_ms": 0.255,
+      "objetivo_e3_ms": 0.2295,
+      "baseline_e3_medido_ms": 1.022521999999998,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q3",
+      "escenario": "frio",
+      "metrica": "p95",
+      "valor_e2_ms": 0.544,
+      "objetivo_e3_ms": 0.48960000000000004,
+      "baseline_e3_medido_ms": 1.5029649999999999,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q3",
+      "escenario": "frio",
+      "metrica": "p99",
+      "valor_e2_ms": 0.725,
+      "objetivo_e3_ms": 0.6525,
+      "baseline_e3_medido_ms": 1.6439859999999997,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q4",
+      "escenario": "frio",
+      "metrica": "p95",
+      "valor_e2_ms": 0.843,
+      "objetivo_e3_ms": 0.7587,
+      "baseline_e3_medido_ms": 2.4828899999999994,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q4",
+      "escenario": "frio",
+      "metrica": "p99",
+      "valor_e2_ms": 0.956,
+      "objetivo_e3_ms": 0.8603999999999999,
+      "baseline_e3_medido_ms": 3.114903999999999,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q5",
+      "escenario": "frio",
+      "metrica": "p95",
+      "valor_e2_ms": 0.169,
+      "objetivo_e3_ms": 0.1521,
+      "baseline_e3_medido_ms": 0.7933399999999999,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q5",
+      "escenario": "frio",
+      "metrica": "p99",
+      "valor_e2_ms": 0.184,
+      "objetivo_e3_ms": 0.1656,
+      "baseline_e3_medido_ms": 1.1205119999999997,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q1",
+      "escenario": "caliente",
+      "metrica": "p95",
+      "valor_e2_ms": 0.149,
+      "objetivo_e3_ms": 0.1341,
+      "baseline_e3_medido_ms": 0.6858049999999997,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q1",
+      "escenario": "caliente",
+      "metrica": "p99",
+      "valor_e2_ms": 0.169,
+      "objetivo_e3_ms": 0.1521,
+      "baseline_e3_medido_ms": 0.9009809999999996,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q2",
+      "escenario": "caliente",
+      "metrica": "p95",
+      "valor_e2_ms": 0.177,
+      "objetivo_e3_ms": 0.1593,
+      "baseline_e3_medido_ms": 0.8208799999999998,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q2",
+      "escenario": "caliente",
+      "metrica": "p99",
+      "valor_e2_ms": 0.196,
+      "objetivo_e3_ms": 0.1764,
+      "baseline_e3_medido_ms": 1.0412139999999994,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q3",
+      "escenario": "caliente",
+      "metrica": "p95",
+      "valor_e2_ms": 0.524,
+      "objetivo_e3_ms": 0.4716,
+      "baseline_e3_medido_ms": 1.3927949999999996,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q3",
+      "escenario": "caliente",
+      "metrica": "p99",
+      "valor_e2_ms": 0.599,
+      "objetivo_e3_ms": 0.5391,
+      "baseline_e3_medido_ms": 1.645063,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q4",
+      "escenario": "caliente",
+      "metrica": "p95",
+      "valor_e2_ms": 7.149,
+      "objetivo_e3_ms": 6.4341,
+      "baseline_e3_medido_ms": 5.683314999999982,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q4",
+      "escenario": "caliente",
+      "metrica": "p99",
+      "valor_e2_ms": 10.186,
+      "objetivo_e3_ms": 9.1674,
+      "baseline_e3_medido_ms": 7.78868699999984,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q5",
+      "escenario": "caliente",
+      "metrica": "p95",
+      "valor_e2_ms": 0.598,
+      "objetivo_e3_ms": 0.5382,
+      "baseline_e3_medido_ms": 1.3340199999999995,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    },
+    {
+      "consulta": "Q5",
+      "escenario": "caliente",
+      "metrica": "p99",
+      "valor_e2_ms": 0.712,
+      "objetivo_e3_ms": 0.6408,
+      "baseline_e3_medido_ms": 1.640781,
+      "regla": "0.90 * E2 (misma consulta y escenario)"
+    }
+  ],
+  "checklist_momento_1": {
+    "corrida_canonica_e2_identificada": true,
+    "filas_por_entidad_volumen_inicial_conocidas": true,
+    "seed_y_condiciones_conservadas": true,
+    "estado_inicial_reproducible": true,
+    "metricas_comparables_e2_registradas": true,
+    "objetivos_calculados_formula_0_90": true,
+    "comparacion_futura_misma_consulta_escenario_metrica": true
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "kill_switch": false,
+  "enabled": false,
+  "metadata": {
+    "reset": true,
+    "project": "SupplyGrid"
+  },
+  "faults": {
+    "A1_latencia_jitter": {
+      "id": "A1_latencia_jitter",
+      "family": "LATENCY",
+      "fault_type": "latency_jitter",
+      "enabled": false,
+      "description": "Latencia fija con jitter lognormal sobre consultas o endpoints seleccionados.",
+      "targets": [
+        "Q1",
+        "Q4",
+        "POST /ordenes-compra"
+      ],
+      "traffic_pct": 1.0,
+      "seed": 42,
+      "parameters": {
+        "mean_ms": 25.0,
+        "jitter_ms": 5.0,
+        "distribution": "lognormal"
+      }
+    },
+    "A2_timeout_controlado": {
+      "id": "A2_timeout_controlado",
+      "family": "LATENCY",
+      "fault_type": "controlled_timeout",
+      "enabled": false,
+      "description": "Interrupción controlada por timeout si la ejecución excede el umbral límite.",
+      "targets": [
+        "Q4",
+        "POST /ordenes-compra"
+      ],
+      "traffic_pct": 0.5,
+      "seed": 42,
+      "parameters": {
+        "timeout_ms": 15.0
+      }
+    },
+    "B1_pool_agotado": {
+      "id": "B1_pool_agotado",
+      "family": "DATABASE",
+      "fault_type": "db_pool_exhaustion",
+      "enabled": false,
+      "description": "Simulación de saturación del pool de conexiones PostgreSQL con rechazo OperationalError.",
+      "targets": [
+        "*"
+      ],
+      "traffic_pct": 0.3,
+      "seed": 42,
+      "parameters": {
+        "rejection_probability": 0.4,
+        "error_message": "FATAL: remaining connection slots are reserved for non-replication superuser connections"
+      }
+    },
+    "B2_bloqueo_recurso": {
+      "id": "B2_bloqueo_recurso",
+      "family": "DATABASE",
+      "fault_type": "resource_lock",
+      "enabled": false,
+      "description": "Simulación de contención y espera por bloqueo exclusivo sobre tupla o recurso caliente (proveedor_id=3).",
+      "targets": [
+        "Q4",
+        "Q5",
+        "proveedor_3"
+      ],
+      "traffic_pct": 1.0,
+      "seed": 42,
+      "parameters": {
+        "lock_wait_ms": 80.0,
+        "target_key": "proveedor_3"
+      }
+    },
+    "C1_saturacion_cpu": {
+      "id": "C1_saturacion_cpu",
+      "family": "DEGRADATION",
+      "fault_type": "cpu_burn",
+      "enabled": false,
+      "description": "Saturación controlada de cómputo en segundo plano para inducir contención de CPU.",
+      "targets": [
+        "*"
+      ],
+      "traffic_pct": 1.0,
+      "seed": 42,
+      "parameters": {
+        "intensity_pct": 60.0,
+        "duration_s": 5.0,
+        "threads": 2
+      }
+    },
+    "C2_presion_memoria": {
+      "id": "C2_presion_memoria",
+      "family": "DEGRADATION",
+      "fault_type": "memory_pressure",
+      "enabled": false,
+      "description": "Presión transitoria de memoria RAM asignando búferes acotados con liberación garantizada.",
+      "targets": [
+        "*"
+      ],
+      "traffic_pct": 1.0,
+      "seed": 42,
+      "parameters": {
+        "size_mb": 150.0,
+        "duration_s": 4.0
+      }
+    },
+    "D1_particion_red": {
+      "id": "D1_particion_red",
+      "family": "AVAILABILITY",
+      "fault_type": "network_partition",
+      "enabled": false,
+      "description": "Simulación de partición o corte de red transitorio hacia PostgreSQL o servicios externos.",
+      "targets": [
+        "*"
+      ],
+      "traffic_pct": 1.0,
+      "seed": 42,
+      "parameters": {
+        "duration_s": 3.0
+      }
+    },
+    "D2_respuestas_5xx": {
+      "id": "D2_respuestas_5xx",
+      "family": "AVAILABILITY",
+      "fault_type": "external_5xx",
+      "enabled": false,
+      "description": "Inyección controlada de errores 5xx (503 Service Unavailable / 500) sobre porcentaje de tráfico.",
+      "targets": [
+        "POST /ordenes-compra",
+        "Q1",
+        "Q3"
+      ],
+      "traffic_pct": 0.25,
+      "seed": 42,
+      "parameters": {
+        "status_code": 503,
+        "message": "Simulated upstream 503 Service Unavailable"
+      }
+    }
+  }
+}
