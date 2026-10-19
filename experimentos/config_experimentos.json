@@ -1,0 +1,35 @@
+{
+  "proyecto": "SupplyGrid",
+  "entregable": 3,
+  "responsable": "C - Diseño experimental y corrección",
+  "seed": 42,
+  "experimentos": [
+    {
+      "id": "EXP-01",
+      "nombre": "Latencia inducida con jitter",
+      "familia": "A",
+      "fault_id": "A1_latencia_jitter",
+      "consulta": "Q1",
+      "escenario": "frio",
+      "repeticiones": 200,
+      "parametros": {
+        "mean_ms": 25.0,
+        "jitter_ms": 5.0,
+        "distribution": "lognormal"
+      },
+      "hipotesis": "La latencia artificial incrementará los tiempos de respuesta de Q1 respecto al control sin fallas.",
+      "prediccion": {
+        "p95": "Mayor que el p95 del control",
+        "p99": "Mayor que el p99 del control",
+        "errores": "No se esperan errores causados por A1"
+      },
+      "variables_controladas": [
+        "seed",
+        "consulta SQL",
+        "parametros SQL",
+        "volumen de datos",
+        "numero de repeticiones"
+      ]
+    }
+  ]
+}

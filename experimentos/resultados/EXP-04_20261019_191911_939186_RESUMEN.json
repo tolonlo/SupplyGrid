@@ -1,0 +1,248 @@
+{
+  "tipo": "resumen_experimental",
+  "experimento": {
+    "id": "EXP-04",
+    "familia": "D",
+    "fault_id": "D2_respuestas_5xx",
+    "consulta": "Q1",
+    "escenario": "frio",
+    "repeticiones": 200,
+    "seed": 42,
+    "traffic_pct": 0.25,
+    "hipotesis": "La inyección de respuestas HTTP 503 reducirá la disponibilidad de las operaciones. Los reintentos acotados permitirán recuperar parte de las solicitudes afectadas, con un costo adicional de latencia."
+  },
+  "identificador_ejecucion": "20261019_191911_939186",
+  "fecha": "2026-10-19T19:19:15.012994+00:00",
+  "repeticiones": 5,
+  "fases": {
+    "control": {
+      "disponibilidad_pct": {
+        "n": 5,
+        "mediana": 100.0,
+        "media": 100.0,
+        "minimo": 100.0,
+        "maximo": 100.0,
+        "desviacion_estandar": 0.0
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 0.2600982499999998,
+        "media": 0.30498513999999965,
+        "minimo": 0.24139164999999949,
+        "maximo": 0.4778065999999994,
+        "desviacion_estandar": 0.09845858576667134
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 0.4989511699999971,
+        "media": 0.5041526339999978,
+        "minimo": 0.35491258999999603,
+        "maximo": 0.7833299999999989,
+        "desviacion_estandar": 0.17060242775342838
+      },
+      "p95_todas_ms": {
+        "n": 5,
+        "mediana": 0.2600982499999998,
+        "media": 0.30498513999999965,
+        "minimo": 0.24139164999999949,
+        "maximo": 0.4778065999999994,
+        "desviacion_estandar": 0.09845858576667134
+      },
+      "p99_todas_ms": {
+        "n": 5,
+        "mediana": 0.4989511699999971,
+        "media": 0.5041526339999978,
+        "minimo": 0.35491258999999603,
+        "maximo": 0.7833299999999989,
+        "desviacion_estandar": 0.17060242775342838
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 5452.506961504773,
+        "media": 5205.480962588658,
+        "minimo": 4570.784378887952,
+        "maximo": 5719.705708829343,
+        "desviacion_estandar": 498.77440488058573
+      },
+      "intentos_totales": {
+        "n": 5,
+        "mediana": 200,
+        "media": 200,
+        "minimo": 200,
+        "maximo": 200,
+        "desviacion_estandar": 0.0
+      },
+      "solicitudes_recuperadas": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      }
+    },
+    "con_falla": {
+      "disponibilidad_pct": {
+        "n": 5,
+        "mediana": 77.0,
+        "media": 77.6,
+        "minimo": 75.0,
+        "maximo": 80.5,
+        "desviacion_estandar": 2.043281674170255
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 46,
+        "media": 44.8,
+        "minimo": 39,
+        "maximo": 50,
+        "desviacion_estandar": 4.08656334834051
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 0.25733355,
+        "media": 0.30223878,
+        "minimo": 0.207425,
+        "maximo": 0.4152086,
+        "desviacion_estandar": 0.10258254157406975
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 0.3669467699999998,
+        "media": 0.39681106399999994,
+        "minimo": 0.2663502599999998,
+        "maximo": 0.58650625,
+        "desviacion_estandar": 0.13174324264009157
+      },
+      "p95_todas_ms": {
+        "n": 5,
+        "mediana": 0.2274556499999996,
+        "media": 0.28791076999999987,
+        "minimo": 0.20473749999999996,
+        "maximo": 0.4033443499999999,
+        "desviacion_estandar": 0.09877629237542658
+      },
+      "p99_todas_ms": {
+        "n": 5,
+        "mediana": 0.3044829099999987,
+        "media": 0.3790644159999996,
+        "minimo": 0.25403725999999976,
+        "maximo": 0.5856437499999999,
+        "desviacion_estandar": 0.14105394576633062
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 5339.080866888266,
+        "media": 4767.928378236563,
+        "minimo": 3382.5545287711093,
+        "maximo": 5754.770088635771,
+        "desviacion_estandar": 1130.927352542935
+      },
+      "intentos_totales": {
+        "n": 5,
+        "mediana": 200,
+        "media": 200,
+        "minimo": 200,
+        "maximo": 200,
+        "desviacion_estandar": 0.0
+      },
+      "solicitudes_recuperadas": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      }
+    },
+    "con_correccion": {
+      "disponibilidad_pct": {
+        "n": 5,
+        "mediana": 98.5,
+        "media": 98.5,
+        "minimo": 98.0,
+        "maximo": 99.0,
+        "desviacion_estandar": 0.5
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 3,
+        "media": 3,
+        "minimo": 2,
+        "maximo": 4,
+        "desviacion_estandar": 1.0
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 7.06787475,
+        "media": 11.401172429999999,
+        "minimo": 6.7946145,
+        "maximo": 18.1352713,
+        "desviacion_estandar": 6.102819537581589
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 19.47409375,
+        "media": 19.084290294,
+        "minimo": 17.92808545,
+        "maximo": 19.54346,
+        "desviacion_estandar": 0.6890990686988544
+      },
+      "p95_todas_ms": {
+        "n": 5,
+        "mediana": 17.579910699999996,
+        "media": 15.601264409999997,
+        "minimo": 7.007847599999999,
+        "maximo": 18.177308349999993,
+        "desviacion_estandar": 4.823891521253292
+      },
+      "p99_todas_ms": {
+        "n": 5,
+        "mediana": 19.46871875,
+        "media": 19.31468935,
+        "minimo": 18.955436749999997,
+        "maximo": 19.53974,
+        "desviacion_estandar": 0.2676406790490831
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 389.91321720884673,
+        "media": 379.6824734391683,
+        "minimo": 291.31480761346387,
+        "maximo": 472.64368721061646,
+        "desviacion_estandar": 66.25881109898289
+      },
+      "intentos_totales": {
+        "n": 5,
+        "mediana": 264,
+        "media": 264.2,
+        "minimo": 249,
+        "maximo": 282,
+        "desviacion_estandar": 12.255610959882825
+      },
+      "solicitudes_recuperadas": {
+        "n": 5,
+        "mediana": 51,
+        "media": 47.8,
+        "minimo": 33,
+        "maximo": 60,
+        "desviacion_estandar": 10.47377677822093
+      }
+    }
+  },
+  "limitaciones": [
+    "D2 genera errores HTTP simulados dentro del interceptor SQL.",
+    "No se realizaron peticiones HTTP reales.",
+    "La selección probabilística de tráfico no es determinista en el motor actual.",
+    "Los percentiles principales consideran solamente solicitudes exitosas.",
+    "Los reintentos pueden aumentar la latencia y reducir el throughput."
+  ]
+}

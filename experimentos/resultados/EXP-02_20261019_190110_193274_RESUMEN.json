@@ -1,0 +1,248 @@
+{
+  "tipo": "resumen_experimental",
+  "experimento": {
+    "id": "EXP-02",
+    "familia": "B",
+    "fault_id": "B1_pool_agotado",
+    "consulta": "Q1",
+    "escenario": "frio",
+    "repeticiones": 200,
+    "seed": 42,
+    "traffic_pct": 0.3,
+    "hipotesis": "Los rechazos simulados B1 reducirán la disponibilidad. Los reintentos acotados recuperarán parte de las solicitudes."
+  },
+  "identificador_ejecucion": "20261019_190110_193274",
+  "fecha": "2026-10-19T19:01:13.960607+00:00",
+  "repeticiones": 5,
+  "fases": {
+    "control": {
+      "disponibilidad_pct": {
+        "n": 5,
+        "mediana": 100.0,
+        "media": 100.0,
+        "minimo": 100.0,
+        "maximo": 100.0,
+        "desviacion_estandar": 0.0
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 0.29905414999999996,
+        "media": 0.2975069499999998,
+        "minimo": 0.2231124999999999,
+        "maximo": 0.3700853999999999,
+        "desviacion_estandar": 0.056101287152992285
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 0.5183514899999991,
+        "media": 0.496138477999999,
+        "minimo": 0.3558560799999985,
+        "maximo": 0.6100414199999992,
+        "desviacion_estandar": 0.10854022828920279
+      },
+      "p95_todas_ms": {
+        "n": 5,
+        "mediana": 0.29905414999999996,
+        "media": 0.2975069499999998,
+        "minimo": 0.2231124999999999,
+        "maximo": 0.3700853999999999,
+        "desviacion_estandar": 0.056101287152992285
+      },
+      "p99_todas_ms": {
+        "n": 5,
+        "mediana": 0.5183514899999991,
+        "media": 0.496138477999999,
+        "minimo": 0.3558560799999985,
+        "maximo": 0.6100414199999992,
+        "desviacion_estandar": 0.10854022828920279
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 5002.297930711968,
+        "media": 5129.71107977875,
+        "minimo": 4883.940242378424,
+        "maximo": 5570.578166551431,
+        "desviacion_estandar": 291.7772871542458
+      },
+      "intentos_totales": {
+        "n": 5,
+        "mediana": 200,
+        "media": 200,
+        "minimo": 200,
+        "maximo": 200,
+        "desviacion_estandar": 0.0
+      },
+      "solicitudes_recuperadas": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      }
+    },
+    "con_falla": {
+      "disponibilidad_pct": {
+        "n": 5,
+        "mediana": 73.5,
+        "media": 73.2,
+        "minimo": 67.0,
+        "maximo": 77.0,
+        "desviacion_estandar": 3.751666296460814
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 53,
+        "media": 53.6,
+        "minimo": 46,
+        "maximo": 66,
+        "desviacion_estandar": 7.503332592921628
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 0.2934956999999996,
+        "media": 0.3007169199999998,
+        "minimo": 0.2134648,
+        "maximo": 0.42649099999999995,
+        "desviacion_estandar": 0.07946054226172261
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 0.4256812499999998,
+        "media": 0.4775826579999996,
+        "minimo": 0.3440452399999999,
+        "maximo": 0.8020595799999989,
+        "desviacion_estandar": 0.18461091734763757
+      },
+      "p95_todas_ms": {
+        "n": 5,
+        "mediana": 0.26379554999999993,
+        "media": 0.27841390999999993,
+        "minimo": 0.20297114999999993,
+        "maximo": 0.395608,
+        "desviacion_estandar": 0.07482239343230913
+      },
+      "p99_todas_ms": {
+        "n": 5,
+        "mediana": 0.3885476699999993,
+        "media": 0.44647486799999947,
+        "minimo": 0.3048109199999992,
+        "maximo": 0.7407627399999992,
+        "desviacion_estandar": 0.16950380265108048
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 4690.927997770161,
+        "media": 4570.862133671153,
+        "minimo": 3132.2559787197524,
+        "maximo": 5543.3154666356095,
+        "desviacion_estandar": 930.338797151521
+      },
+      "intentos_totales": {
+        "n": 5,
+        "mediana": 200,
+        "media": 200,
+        "minimo": 200,
+        "maximo": 200,
+        "desviacion_estandar": 0.0
+      },
+      "solicitudes_recuperadas": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      }
+    },
+    "con_correccion": {
+      "disponibilidad_pct": {
+        "n": 5,
+        "mediana": 97.0,
+        "media": 97.3,
+        "minimo": 95.5,
+        "maximo": 99.0,
+        "desviacion_estandar": 1.4404860290887933
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 6,
+        "media": 5.4,
+        "minimo": 2,
+        "maximo": 9,
+        "desviacion_estandar": 2.8809720581775866
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 17.4229001,
+        "media": 17.439120849999995,
+        "minimo": 16.2463335,
+        "maximo": 18.45660405,
+        "desviacion_estandar": 0.8664592931916739
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 19.425948639999998,
+        "media": 19.473210253999998,
+        "minimo": 19.307942299999997,
+        "maximo": 19.74211732,
+        "desviacion_estandar": 0.16883520150771278
+      },
+      "p95_todas_ms": {
+        "n": 5,
+        "mediana": 18.2808277,
+        "media": 18.13973621,
+        "minimo": 17.4781548,
+        "maximo": 18.6993066,
+        "desviacion_estandar": 0.4665809382932679
+      },
+      "p99_todas_ms": {
+        "n": 5,
+        "mediana": 19.410061579999997,
+        "media": 19.473243198,
+        "minimo": 19.338717409999997,
+        "maximo": 19.73646733,
+        "desviacion_estandar": 0.16089362105509902
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 291.80618958404506,
+        "media": 290.2508826612025,
+        "minimo": 268.6651664041253,
+        "maximo": 307.74498862884667,
+        "desviacion_estandar": 17.702272934741757
+      },
+      "intentos_totales": {
+        "n": 5,
+        "mediana": 280,
+        "media": 280.6,
+        "minimo": 274,
+        "maximo": 286,
+        "desviacion_estandar": 4.669047011971501
+      },
+      "solicitudes_recuperadas": {
+        "n": 5,
+        "mediana": 56,
+        "media": 55.8,
+        "minimo": 49,
+        "maximo": 61,
+        "desviacion_estandar": 4.324349662087931
+      }
+    }
+  },
+  "limitaciones": [
+    "B1 es una simulación de rechazo y no un agotamiento físico del pool.",
+    "La conexión se establece antes de activar la falla.",
+    "El muestreo de tráfico utiliza aleatoriedad no determinista en el interceptor actual.",
+    "Los percentiles principales consideran solicitudes exitosas.",
+    "Los tiempos de solicitudes fallidas se registran por separado."
+  ]
+}
