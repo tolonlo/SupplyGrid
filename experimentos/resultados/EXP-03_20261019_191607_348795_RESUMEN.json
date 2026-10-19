@@ -1,0 +1,277 @@
+{
+  "tipo": "resumen_experimental",
+  "experimento": {
+    "id": "EXP-03",
+    "familia": "C",
+    "fault_id": "C1_saturacion_cpu",
+    "consulta": "Q1",
+    "escenario": "frio",
+    "seed": 42,
+    "hipotesis": "La carga computacional artificial aumentará la utilización de CPU y podrá degradar los tiempos de respuesta. Reducir su intensidad disminuirá la presión sobre los recursos."
+  },
+  "identificador_ejecucion": "20261019_191607_348795",
+  "fecha": "2026-10-19T19:17:27.812390+00:00",
+  "repeticiones": 5,
+  "duracion_fase_s": 5.0,
+  "fases": {
+    "control": {
+      "ejecuciones": {
+        "n": 5,
+        "mediana": 35126,
+        "media": 34795.6,
+        "minimo": 33337,
+        "maximo": 35426,
+        "desviacion_estandar": 853.0664100760268
+      },
+      "p50_ms": {
+        "n": 5,
+        "mediana": 0.13575,
+        "media": 0.1359332,
+        "minimo": 0.134833,
+        "maximo": 0.137958,
+        "desviacion_estandar": 0.001224894566891369
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 0.178459,
+        "media": 0.18714909999999998,
+        "minimo": 0.177042,
+        "maximo": 0.2152171999999999,
+        "desviacion_estandar": 0.016145596822973077
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 0.26907349999999997,
+        "media": 0.29382760400000013,
+        "minimo": 0.265,
+        "maximo": 0.3687481199999997,
+        "desviacion_estandar": 0.04412787999111283
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 7025.034442414657,
+        "media": 6958.968507050539,
+        "minimo": 6667.104480575108,
+        "maximo": 7085.05369364067,
+        "desviacion_estandar": 170.69054413478665
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      },
+      "disponibilidad_pct": {
+        "n": 5,
+        "mediana": 100.0,
+        "media": 100.0,
+        "minimo": 100.0,
+        "maximo": 100.0,
+        "desviacion_estandar": 0.0
+      },
+      "recursos": {
+        "cpu_proceso_pct": {
+          "n": 5,
+          "mediana": 20.064,
+          "media": 19.8904,
+          "minimo": 18.848,
+          "maximo": 20.332,
+          "desviacion_estandar": 0.5952115590275449
+        },
+        "cpu_sistema_pct": {
+          "n": 5,
+          "mediana": 21.044,
+          "media": 21.124,
+          "minimo": 19.112,
+          "maximo": 23.348,
+          "desviacion_estandar": 1.6596264639972451
+        },
+        "memoria_proceso_mb": {
+          "n": 5,
+          "mediana": 36.800625,
+          "media": 36.656,
+          "minimo": 34.105,
+          "maximo": 38.985625,
+          "desviacion_estandar": 1.921011676012148
+        }
+      }
+    },
+    "con_falla": {
+      "ejecuciones": {
+        "n": 5,
+        "mediana": 1631,
+        "media": 1622.8,
+        "minimo": 1579,
+        "maximo": 1639,
+        "desviacion_estandar": 24.983994876720576
+      },
+      "p50_ms": {
+        "n": 5,
+        "mediana": 3.045041,
+        "media": 3.0475959,
+        "minimo": 3.042167,
+        "maximo": 3.058792,
+        "desviacion_estandar": 0.0067494031254622415
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 3.0901876,
+        "media": 3.10243013,
+        "minimo": 3.0687625,
+        "maximo": 3.1760631,
+        "desviacion_estandar": 0.043542860988450165
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 3.1752284200000003,
+        "media": 3.750678008,
+        "minimo": 3.10856204,
+        "maximo": 6.101047240000001,
+        "desviacion_estandar": 1.3151956135650706
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 326.0205012620618,
+        "media": 324.4369892412152,
+        "minimo": 315.6916704034938,
+        "maximo": 327.7037452169797,
+        "desviacion_estandar": 4.99146787537322
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      },
+      "disponibilidad_pct": {
+        "n": 5,
+        "mediana": 100.0,
+        "media": 100.0,
+        "minimo": 100.0,
+        "maximo": 100.0,
+        "desviacion_estandar": 0.0
+      },
+      "recursos": {
+        "cpu_proceso_pct": {
+          "n": 5,
+          "mediana": 99.504,
+          "media": 98.9568,
+          "minimo": 96.17999999999999,
+          "maximo": 100.164,
+          "desviacion_estandar": 1.629894229697133
+        },
+        "cpu_sistema_pct": {
+          "n": 5,
+          "mediana": 19.68,
+          "media": 21.612000000000002,
+          "minimo": 14.788,
+          "maximo": 27.024,
+          "desviacion_estandar": 5.281177898916113
+        },
+        "memoria_proceso_mb": {
+          "n": 5,
+          "mediana": 36.176875,
+          "media": 36.212625,
+          "minimo": 32.22375,
+          "maximo": 39.553125,
+          "desviacion_estandar": 2.788771339844395
+        }
+      }
+    },
+    "con_correccion": {
+      "ejecuciones": {
+        "n": 5,
+        "mediana": 18786,
+        "media": 18881.2,
+        "minimo": 18423,
+        "maximo": 19259,
+        "desviacion_estandar": 360.8354195474718
+      },
+      "p50_ms": {
+        "n": 5,
+        "mediana": 0.168875,
+        "media": 0.1683832,
+        "minimo": 0.165875,
+        "maximo": 0.170833,
+        "desviacion_estandar": 0.0022893130410671287
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 1.086042,
+        "media": 1.08561006,
+        "minimo": 1.0815872,
+        "maximo": 1.0889547,
+        "desviacion_estandar": 0.0033466880371495517
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 1.189125,
+        "media": 1.1896987719999998,
+        "minimo": 1.1854003599999994,
+        "maximo": 1.1951384999999999,
+        "desviacion_estandar": 0.003549663851679638
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 3757.187413424738,
+        "media": 3776.186687134026,
+        "minimo": 3684.548232089197,
+        "maximo": 3851.795121321301,
+        "desviacion_estandar": 72.16231388491926
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      },
+      "disponibilidad_pct": {
+        "n": 5,
+        "mediana": 100.0,
+        "media": 100.0,
+        "minimo": 100.0,
+        "maximo": 100.0,
+        "desviacion_estandar": 0.0
+      },
+      "recursos": {
+        "cpu_proceso_pct": {
+          "n": 5,
+          "mediana": 50.396,
+          "media": 50.4288,
+          "minimo": 50.248,
+          "maximo": 50.608,
+          "desviacion_estandar": 0.1450351681489691
+        },
+        "cpu_sistema_pct": {
+          "n": 5,
+          "mediana": 17.808,
+          "media": 17.7064,
+          "minimo": 14.96,
+          "maximo": 19.996,
+          "desviacion_estandar": 1.7939132643469686
+        },
+        "memoria_proceso_mb": {
+          "n": 5,
+          "mediana": 35.803125,
+          "media": 34.7525,
+          "minimo": 29.094375,
+          "maximo": 39.20625,
+          "desviacion_estandar": 4.072370724812821
+        }
+      }
+    }
+  },
+  "limitaciones": [
+    "La carga CPU es sintética y se genera mediante hilos Python.",
+    "La CPU del proceso no representa la utilización de PostgreSQL.",
+    "La intensidad configurada no equivale al consumo real observado.",
+    "Cada fase utiliza una ventana temporal de cinco segundos y puede ejecutar diferente cantidad de consultas.",
+    "La corrección reduce la intensidad de la perturbación, no modifica SQL."
+  ]
+}

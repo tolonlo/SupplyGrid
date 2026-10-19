@@ -1,0 +1,221 @@
+{
+  "tipo": "resumen_experimental",
+  "experimento": {
+    "id": "EXP-01",
+    "nombre": "Latencia inducida con jitter",
+    "familia": "A",
+    "fault_id": "A1_latencia_jitter",
+    "consulta": "Q1",
+    "escenario": "frio",
+    "repeticiones": 200,
+    "parametros": {
+      "mean_ms": 25.0,
+      "jitter_ms": 5.0,
+      "distribution": "lognormal"
+    },
+    "hipotesis": "La latencia artificial incrementará los tiempos de respuesta de Q1 respecto al control sin fallas.",
+    "prediccion": {
+      "p95": "Mayor que el p95 del control",
+      "p99": "Mayor que el p99 del control",
+      "errores": "No se esperan errores causados por A1"
+    },
+    "variables_controladas": [
+      "seed",
+      "consulta SQL",
+      "parametros SQL",
+      "volumen de datos",
+      "numero de repeticiones"
+    ]
+  },
+  "identificador_ejecucion": "20261019_185521_631240",
+  "fecha": "2026-10-19T18:56:10.122753+00:00",
+  "repeticiones": 5,
+  "solicitudes_por_fase": 200,
+  "seed": 42,
+  "checksum_parametros": "80fdbc6ba2e58905a941e6f886456109a2fd53c8c936855facfd95252848baa7",
+  "fases": {
+    "control": {
+      "p50_ms": {
+        "n": 5,
+        "mediana": 0.2112705,
+        "media": 0.2106166,
+        "minimo": 0.16514600000000002,
+        "maximo": 0.23904199999999998,
+        "desviacion_estandar": 0.028932493725481033
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 0.37404309999999985,
+        "media": 0.40916527999999985,
+        "minimo": 0.2866979,
+        "maximo": 0.5198875,
+        "desviacion_estandar": 0.09736810633975959
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 0.592015,
+        "media": 0.5723991819999996,
+        "minimo": 0.4266269899999999,
+        "maximo": 0.7150649099999997,
+        "desviacion_estandar": 0.11525280227202411
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 3810.031814085514,
+        "media": 4025.720468488108,
+        "minimo": 3467.1759762269794,
+        "maximo": 5201.932517808687,
+        "desviacion_estandar": 678.1360349653108
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      },
+      "consultas_sql_ejecutadas": {
+        "n": 5,
+        "mediana": 200,
+        "media": 200,
+        "minimo": 200,
+        "maximo": 200,
+        "desviacion_estandar": 0.0
+      }
+    },
+    "con_falla": {
+      "p50_ms": {
+        "n": 5,
+        "mediana": 30.256042,
+        "media": 30.2675918,
+        "minimo": 29.795624500000002,
+        "maximo": 30.654042,
+        "desviacion_estandar": 0.35169442276047597
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 42.97457914999999,
+        "media": 42.05525992999999,
+        "minimo": 39.729585099999994,
+        "maximo": 44.0288753,
+        "desviacion_estandar": 2.0950096191566683
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 46.88034424999999,
+        "media": 46.544064431999985,
+        "minimo": 42.604430079999986,
+        "maximo": 49.42573240999998,
+        "desviacion_estandar": 2.530960161064364
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 32.61077923815874,
+        "media": 32.596372696459845,
+        "minimo": 32.22257248037329,
+        "maximo": 32.95863982845438,
+        "desviacion_estandar": 0.30171179182250907
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      },
+      "consultas_sql_ejecutadas": {
+        "n": 5,
+        "mediana": 200,
+        "media": 200,
+        "minimo": 200,
+        "maximo": 200,
+        "desviacion_estandar": 0.0
+      }
+    },
+    "con_correccion": {
+      "p50_ms": {
+        "n": 5,
+        "mediana": 23.681979,
+        "media": 23.603162599999997,
+        "minimo": 22.356333499999998,
+        "maximo": 24.574917,
+        "desviacion_estandar": 0.8080115985008668
+      },
+      "p95_ms": {
+        "n": 5,
+        "mediana": 38.428658649999996,
+        "media": 38.85801340999999,
+        "minimo": 38.10373719999999,
+        "maximo": 39.78545384999998,
+        "desviacion_estandar": 0.7786177261210585
+      },
+      "p99_ms": {
+        "n": 5,
+        "mediana": 43.89251558999999,
+        "media": 44.05573493199999,
+        "minimo": 42.553857169999986,
+        "maximo": 45.57923199,
+        "desviacion_estandar": 1.3127368345213821
+      },
+      "throughput_ops_s": {
+        "n": 5,
+        "mediana": 57.86796129842224,
+        "media": 58.07656364187999,
+        "minimo": 57.41319263924717,
+        "maximo": 59.001506449416915,
+        "desviacion_estandar": 0.6362454840406814
+      },
+      "errores": {
+        "n": 5,
+        "mediana": 0,
+        "media": 0,
+        "minimo": 0,
+        "maximo": 0,
+        "desviacion_estandar": 0.0
+      },
+      "consultas_sql_ejecutadas": {
+        "n": 5,
+        "mediana": 112,
+        "media": 112,
+        "minimo": 112,
+        "maximo": 112,
+        "desviacion_estandar": 0.0
+      }
+    }
+  },
+  "mejoras": {
+    "p95_pct": {
+      "n": 5,
+      "mediana": 7.42095760581755,
+      "media": 7.447545473691874,
+      "minimo": 3.274452644611179,
+      "maximo": 13.457391449651707,
+      "desviacion_estandar": 4.197051073729649
+    },
+    "p99_pct": {
+      "n": 5,
+      "mediana": 6.517431377252366,
+      "media": 5.1711285681329295,
+      "minimo": -3.0233604993220515,
+      "maximo": 9.228786923850302,
+      "desviacion_estandar": 4.80306070337759
+    },
+    "hit_rate_pct": {
+      "n": 5,
+      "mediana": 44.0,
+      "media": 44.0,
+      "minimo": 44.0,
+      "maximo": 44.0,
+      "desviacion_estandar": 0.0
+    }
+  },
+  "limitaciones": [
+    "Las repeticiones utilizan los mismos parámetros y la misma semilla.",
+    "La caché reduce las consultas SQL ejecutadas y modifica la carga real sobre PostgreSQL.",
+    "La caché es local, comienza vacía y no implementa invalidación por modificaciones de contratos.",
+    "Las fases se ejecutan secuencialmente y pueden existir efectos de orden.",
+    "Los resultados describen este entorno de laboratorio y no demuestran cumplimiento general del sistema."
+  ]
+}

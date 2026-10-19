@@ -1,0 +1,13 @@
+# Archivos temporales de Python
+__pycache__/
+*.py[cod]
+
+# Archivos del sistema
+.DS_Store
+
+# Ejecuciones preliminares de EXP-01
+resultados/EXP-01_20261019_181918.json
+resultados/EXP-01_20261019_182847.json
+resultados/EXP-01_20261019_182916.json
+resultados/EXP-01_20261019_183935.json
+resultados/EXP-01_20261019_184614.json
