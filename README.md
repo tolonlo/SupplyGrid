@@ -219,6 +219,13 @@ python -m experimentos.demo_observabilidad
 python -m experimentos.analizar_observabilidad
 ```
 
+### 6. Tablero en Tiempo Real (Defensa en Vivo / RED y USE)
+Para levantar el tablero interactivo en tiempo real con curvas p50/p95/p99, throughput, tasa de errores, control de las 4 familias de fallas y botón de Kill Switch en vivo:
+```bash
+python tablero.py
+```
+Abre automáticamente el navegador en `http://localhost:8050`. Permite inyectar tráfico, activar fallas en vivo y observar cómo sube y baja el p99 y la tasa de error en tiempo real durante la sustentación.
+
 Los eventos quedan en `experimentos/logs/eventos.jsonl`. Informe: [docs/INFORME_PERSONA_B_E3.md](docs/INFORME_PERSONA_B_E3.md).
 
 Para documentación de fallas y Momento 1, consultar [docs/GUIA_FALLAS_REPRODUCIBILIDAD_E3.md](docs/GUIA_FALLAS_REPRODUCIBILIDAD_E3.md).

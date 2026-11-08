@@ -1,0 +1,50 @@
+name: CI - Verificación de Fronteras Modulares y Resiliencia
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verificacion-fronteras-modulares:
+    name: "Regla #2: Verificación de Fronteras Modulares (Spring Modulith)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Dar permisos de ejecución a mvnw
+        run: chmod +x mvnw
+
+      - name: Ejecutar verificación de arquitectura modular (ArchUnit / Modulith)
+        run: ./mvnw test -Dtest=ModularModulithTest
+
+  pruebas-caos-y-observabilidad:
+    name: "Entregable 3: Pruebas de Aceptación de Caos y Observabilidad"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Instalar dependencias de pruebas
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest psutil psycopg2-binary
+
+      - name: Ejecutar pruebas automatizadas (17 tests)
+        run: |
+          python -m pytest tests/test_chaos_acceptance.py tests/test_observabilidad.py -v
