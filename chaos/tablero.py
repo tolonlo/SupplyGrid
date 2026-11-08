@@ -60,6 +60,7 @@ class TelemetriaEnVivo:
         self.historico_tput = collections.deque(maxlen=60)
         self.historico_err_pct = collections.deque(maxlen=60)
         self.historico_cpu = collections.deque(maxlen=60)
+        self.historico_rss = collections.deque(maxlen=60)
         self.historico_timestamps = collections.deque(maxlen=60)
         self.ops_ultimo_segundo = 0
         self.t_ultimo_calculo = time.monotonic()
@@ -112,6 +113,7 @@ class TelemetriaEnVivo:
             self.historico_tput.append(tput)
             self.historico_err_pct.append(err_pct)
             self.historico_cpu.append(round(cpu_pct, 1))
+            self.historico_rss.append(round(rss_mb, 1))
 
 telemetria = TelemetriaEnVivo()
 
@@ -223,7 +225,10 @@ class GeneradorTrafico:
 def bucle_telemetria_fondo():
     import psutil
     proc = psutil.Process()
+    # Primera llamada para anclar la medición de CPU
+    proc.cpu_percent(interval=None)
     while True:
+        time.sleep(1.0)
         try:
             cpu_pct = proc.cpu_percent(interval=None)
             rss_mb = proc.memory_info().rss / (1024 * 1024)
@@ -232,7 +237,6 @@ def bucle_telemetria_fondo():
             rss_mb = 0.0
 
         telemetria.tick_segundo(cpu_pct, rss_mb)
-        time.sleep(1.0)
 
 # ==============================================================================
 # SERVIDOR HTTP REST & DASHBOARD EN TIEMPO REAL
@@ -338,7 +342,7 @@ HTML_DASHBOARD = r"""<!DOCTYPE html>
   <div class="card-metric">
     <div class="title">Utilización CPU</div>
     <div class="value" id="val-cpu" style="color: var(--accent-purple);">0.0 %</div>
-    <div class="sub">Proceso testigo</div>
+    <div class="sub">Memoria: <span id="val-rss">0.0</span> MB</div>
   </div>
   <div class="card-metric">
     <div class="title">Estado del Caos</div>
@@ -409,8 +413,8 @@ HTML_DASHBOARD = r"""<!DOCTYPE html>
     <div class="family-card">
       <h4>FAMILIA C: Degradación de Recursos</h4>
       <div class="btn-group">
-        <button class="btn btn-purple" onclick="activarFalla('C1_saturacion_cpu', {intensity_pct: 70.0, duration_s: 10.0, threads: 2})">C1: CPU 70% (10s)</button>
-        <button class="btn btn-purple" onclick="activarFalla('C2_presion_memoria', {size_mb: 180.0, duration_s: 6.0})">C2: RAM 180MB</button>
+        <button class="btn btn-purple" onclick="activarFalla('C1_saturacion_cpu', {intensity_pct: 70.0, duration_s: 25.0, threads: 2})">C1: CPU 70% (25s)</button>
+        <button class="btn btn-purple" onclick="activarFalla('C2_presion_memoria', {size_mb: 250.0, duration_s: 20.0})">C2: RAM 250MB (20s)</button>
       </div>
     </div>
 
@@ -514,6 +518,7 @@ async function actualizarDashboard() {
     document.getElementById('val-err').innerText = data.metricas.err_pct + ' %';
     document.getElementById('val-err-count').innerText = data.metricas.total_errores;
     document.getElementById('val-cpu').innerText = data.metricas.cpu_pct + ' %';
+    document.getElementById('val-rss').innerText = data.metricas.rss_mb;
 
     if (data.metricas.err_pct > 15) {
       document.getElementById('val-err').style.color = 'var(--accent-red)';
@@ -674,6 +679,7 @@ class TableroHttpHandler(http.server.BaseHTTPRequestHandler):
                         "err_pct": err_pct,
                         "total_errores": telemetria.total_errores,
                         "cpu_pct": telemetria.historico_cpu[-1] if telemetria.historico_cpu else 0.0,
+                        "rss_mb": telemetria.historico_rss[-1] if telemetria.historico_rss else 0.0,
                     },
                     "caos": {
                         "kill_switch": cfg.kill_switch,
@@ -708,6 +714,8 @@ class TableroHttpHandler(http.server.BaseHTTPRequestHandler):
             cfg = self.manager.get_config()
             nuevo_estado = not cfg.kill_switch
             self.manager.set_kill_switch(nuevo_estado)
+            if nuevo_estado:
+                self.generador.engine.stop_all_disturbances()
             obs.kill_switch("activado_desde_tablero" if nuevo_estado else "desactivado")
             self._responder_json(200, {"ok": True, "kill_switch": nuevo_estado})
             return
@@ -720,10 +728,20 @@ class TableroHttpHandler(http.server.BaseHTTPRequestHandler):
                 self.manager.set_global_enabled(True)
             self.manager.set_fault_state(fault_id, True, parameters=params, traffic_pct=traffic_pct)
             obs.falla(fault_id, True)
+
+            # Iniciar perturbación física en segundo plano para recursos C1 y C2
+            falla_obj = self.manager.get_config().faults.get(fault_id)
+            if falla_obj:
+                if fault_id == "C1_saturacion_cpu":
+                    self.generador.engine.start_cpu_burn(falla_obj)
+                elif fault_id == "C2_presion_memoria":
+                    self.generador.engine.apply_memory_pressure(falla_obj)
+
             self._responder_json(200, {"ok": True, "falla": fault_id, "activa": True})
             return
 
         if parsed.path == "/api/reset":
+            self.generador.engine.stop_all_disturbances()
             self.manager.reset_defaults()
             self.manager.set_kill_switch(False)
             self.manager.set_global_enabled(False)
