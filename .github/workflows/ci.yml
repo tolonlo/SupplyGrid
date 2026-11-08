@@ -19,7 +19,6 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
 
       - name: Dar permisos de ejecución a mvnw
         run: chmod +x mvnw
@@ -43,7 +42,7 @@ jobs:
       - name: Instalar dependencias de pruebas
         run: |
           python -m pip install --upgrade pip
-          pip install pytest psutil psycopg2-binary
+          pip install -r requirements.txt
 
       - name: Ejecutar pruebas automatizadas (17 tests)
         run: |
