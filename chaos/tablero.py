@@ -519,36 +519,36 @@ HTML_DASHBOARD = r"""<!DOCTYPE html>
   }
   .btn-kill-switch:hover { background: var(--status-err); color: #ffffff; }
 
-  /* CONTENEDOR PRINCIPAL */
-  .main-content { padding: 20px 24px; max-width: 1440px; margin: 0 auto; }
+  /* CONTENEDOR PRINCIPAL FLUIDO */
+  .main-content { padding: 24px 36px; width: 100%; max-width: 100%; box-sizing: border-box; }
   .tab-pane { display: none; }
   .tab-pane.active { display: block; }
 
   /* TARJETAS RESUMEN (METRICAS / KPIS) */
-  .grid-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .grid-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
   .card-summary {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 14px 16px;
+    border-radius: 8px;
+    padding: 18px 22px;
   }
-  .card-summary .title { font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.8px; color: var(--text-subtle); margin-bottom: 6px; }
-  .card-summary .val { font-size: 24px; font-weight: 800; color: #ffffff; font-variant-numeric: tabular-nums; }
-  .card-summary .subtitle { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .card-summary .title { font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.8px; color: var(--text-subtle); margin-bottom: 8px; }
+  .card-summary .val { font-size: 30px; font-weight: 800; color: #ffffff; font-variant-numeric: tabular-nums; }
+  .card-summary .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
 
   /* BANNER OPERACIONAL */
   .banner-operational {
     background: var(--bg-surface);
-    border-left: 3px solid var(--brand-indigo);
+    border-left: 4px solid var(--brand-indigo);
     border-top: 1px solid var(--border-subtle);
     border-right: 1px solid var(--border-subtle);
     border-bottom: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 12px 18px;
+    border-radius: 8px;
+    padding: 16px 22px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
   .banner-operational.warning { border-left-color: var(--status-warn); }
   .banner-operational.error { border-left-color: var(--status-err); }
@@ -633,78 +633,78 @@ HTML_DASHBOARD = r"""<!DOCTYPE html>
   .code-text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: var(--brand-cyan); }
 
   /* SECCION SRE (METRICAS Y GRAFICAS) */
-  .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
   .chart-card {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 14px;
+    border-radius: 8px;
+    padding: 18px 20px;
   }
-  .chart-card h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-subtle); margin-bottom: 12px; }
+  .chart-card h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-subtle); margin-bottom: 14px; }
 
   /* PANEL DE INYECCION DE FALLAS */
   .chaos-controls {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 16px;
-    margin-bottom: 20px;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
   }
   .chaos-controls-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 14px;
-    padding-bottom: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--border-subtle);
   }
-  .chaos-controls-header h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .chaos-controls-header h3 { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; }
 
   .traffic-config-bar {
     display: flex;
-    gap: 14px;
+    gap: 16px;
     align-items: center;
     background: var(--bg-surface-elevated);
-    padding: 10px 14px;
-    border-radius: 4px;
-    margin-bottom: 14px;
+    padding: 12px 18px;
+    border-radius: 6px;
+    margin-bottom: 18px;
     flex-wrap: wrap;
   }
-  .traffic-config-bar label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+  .traffic-config-bar label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
   select.select-dark {
     background: #090d16;
     color: #ffffff;
     border: 1px solid var(--border-strong);
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 11px;
+    padding: 7px 12px;
+    border-radius: 5px;
+    font-size: 12px;
     font-weight: 600;
   }
 
-  .families-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .families-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; }
   .family-block {
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 14px;
+    border-radius: 8px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
   }
-  .family-block.family-a { border-left: 4px solid #f59e0b; }
-  .family-block.family-b { border-left: 4px solid #f43f5e; }
-  .family-block.family-c { border-left: 4px solid #a855f7; }
-  .family-block.family-d { border-left: 4px solid #ef4444; }
+  .family-block.family-a { border-left: 5px solid #f59e0b; }
+  .family-block.family-b { border-left: 5px solid #f43f5e; }
+  .family-block.family-c { border-left: 5px solid #a855f7; }
+  .family-block.family-d { border-left: 5px solid #ef4444; }
 
   .family-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 8px;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--border-subtle);
   }
   .family-header h5 {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -715,11 +715,11 @@ HTML_DASHBOARD = r"""<!DOCTYPE html>
   .family-d .family-header h5 { color: #f87171; }
 
   .family-tag {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.5px;
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: 3px 8px;
+    border-radius: 4px;
     text-transform: uppercase;
   }
   .family-a .family-tag { background: #78350f44; color: #f59e0b; border: 1px solid #d9770655; }
@@ -730,82 +730,97 @@ HTML_DASHBOARD = r"""<!DOCTYPE html>
   .fault-item {
     background: #090d16;
     border: 1px solid var(--border-subtle);
-    border-radius: 5px;
-    padding: 10px;
+    border-radius: 6px;
+    padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
   .fault-item-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
   .fault-code {
     background: #1e293b;
     color: #f1f5f9;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: 3px 8px;
+    border-radius: 4px;
     font-family: monospace;
   }
   .fault-name {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     color: #e2e8f0;
   }
   .fault-inputs-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     flex-wrap: wrap;
   }
   .input-field {
     display: flex;
     align-items: center;
-    gap: 4px;
-    background: #111827;
+    gap: 6px;
+    background: #0c1220;
     border: 1px solid var(--border-strong);
-    padding: 3px 6px;
-    border-radius: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
   }
   .input-label {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-muted);
-    font-weight: 600;
+    font-weight: 700;
   }
   .input-mini {
-    background: transparent;
-    border: none;
+    background: #162032;
+    border: 1px solid #334155;
+    border-radius: 4px;
     color: #ffffff;
-    font-size: 11px;
-    font-weight: 700;
-    width: 44px;
-    text-align: right;
+    font-size: 15px;
+    font-weight: 800;
+    width: 76px;
+    height: 36px;
+    padding: 2px 6px;
+    text-align: center;
     font-variant-numeric: tabular-nums;
   }
-  .input-mini:focus { outline: none; }
+  .input-mini:focus { outline: 1px solid var(--brand-indigo); border-color: var(--brand-indigo); }
+  .input-mini::-webkit-inner-spin-button,
+  .input-mini::-webkit-outer-spin-button {
+    opacity: 1;
+    cursor: pointer;
+    height: 26px;
+    transform: scale(1.4);
+    margin-left: 4px;
+  }
   .input-unit {
-    font-size: 10px;
-    color: var(--text-subtle);
+    font-size: 12px;
+    font-weight: 700;
+    color: #94a3b8;
   }
   .select-mini {
-    background: #111827;
-    border: none;
+    background: #162032;
+    border: 1px solid #334155;
+    border-radius: 4px;
     color: #ffffff;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
+    height: 36px;
+    padding: 4px 10px;
   }
   .btn-inject {
     background: var(--brand-indigo);
     color: #ffffff;
     border: none;
-    border-radius: 4px;
-    font-size: 10px;
+    border-radius: 5px;
+    font-size: 11px;
     font-weight: 800;
-    letter-spacing: 0.3px;
-    padding: 6px 12px;
+    letter-spacing: 0.4px;
+    padding: 8px 16px;
     cursor: pointer;
     transition: 0.15s;
     margin-left: auto;
@@ -1029,11 +1044,11 @@ HTML_DASHBOARD = r"""<!DOCTYPE html>
     <div class="charts-grid">
       <div class="chart-card">
         <h4>Latencia RED: p50 / p95 / p99 en Tiempo Real (ms)</h4>
-        <div style="height: 210px;"><canvas id="chartLatency"></canvas></div>
+        <div style="height: 270px;"><canvas id="chartLatency"></canvas></div>
       </div>
       <div class="chart-card">
         <h4>Throughput (ops/s) vs Tasa de Errores (%)</h4>
-        <div style="height: 210px;"><canvas id="chartTputErr"></canvas></div>
+        <div style="height: 270px;"><canvas id="chartTputErr"></canvas></div>
       </div>
     </div>
 
