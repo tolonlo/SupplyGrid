@@ -681,36 +681,145 @@ HTML_DASHBOARD = r"""<!DOCTYPE html>
     font-weight: 600;
   }
 
-  .families-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .families-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
   .family-block {
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-subtle);
-    border-radius: 4px;
-    padding: 12px;
+    border-radius: 6px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
-  .family-block h5 {
-    font-size: 10px;
+  .family-block.family-a { border-left: 4px solid #f59e0b; }
+  .family-block.family-b { border-left: 4px solid #f43f5e; }
+  .family-block.family-c { border-left: 4px solid #a855f7; }
+  .family-block.family-d { border-left: 4px solid #ef4444; }
+
+  .family-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .family-header h5 {
+    font-size: 11px;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    color: var(--text-subtle);
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--border-subtle);
-    padding-bottom: 4px;
   }
-  .btn-group-chaos { display: flex; gap: 8px; flex-wrap: wrap; }
-  .btn-fault {
-    background: transparent;
-    border: 1px solid var(--border-strong);
-    color: var(--text-main);
-    padding: 6px 10px;
-    border-radius: 4px;
+  .family-a .family-header h5 { color: #fbbf24; }
+  .family-b .family-header h5 { color: #fb7185; }
+  .family-c .family-header h5 { color: #c084fc; }
+  .family-d .family-header h5 { color: #f87171; }
+
+  .family-tag {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .family-a .family-tag { background: #78350f44; color: #f59e0b; border: 1px solid #d9770655; }
+  .family-b .family-tag { background: #88133744; color: #f43f5e; border: 1px solid #e11d4855; }
+  .family-c .family-tag { background: #581c8744; color: #a855f7; border: 1px solid #9333ea55; }
+  .family-d .family-tag { background: #7f1d1d44; color: #ef4444; border: 1px solid #dc262655; }
+
+  .fault-item {
+    background: #090d16;
+    border: 1px solid var(--border-subtle);
+    border-radius: 5px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .fault-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .fault-code {
+    background: #1e293b;
+    color: #f1f5f9;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+  }
+  .fault-name {
     font-size: 11px;
     font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s ease;
+    color: #e2e8f0;
   }
-  .btn-fault:hover { background: var(--bg-surface-hover); border-color: var(--brand-indigo); }
-  .btn-fault.btn-active { background: var(--brand-indigo); border-color: var(--brand-indigo); color: #ffffff; }
+  .fault-inputs-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .input-field {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #111827;
+    border: 1px solid var(--border-strong);
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
+  .input-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .input-mini {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    width: 44px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .input-mini:focus { outline: none; }
+  .input-unit {
+    font-size: 10px;
+    color: var(--text-subtle);
+  }
+  .select-mini {
+    background: #111827;
+    border: none;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .btn-inject {
+    background: var(--brand-indigo);
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: 0.15s;
+    margin-left: auto;
+    text-transform: uppercase;
+  }
+  .btn-inject:hover { background: var(--brand-indigo-hover); }
+  .family-a .btn-inject { background: #b45309; }
+  .family-a .btn-inject:hover { background: #92400e; }
+  .family-b .btn-inject { background: #be123c; }
+  .family-b .btn-inject:hover { background: #9f1239; }
+  .family-c .btn-inject { background: #7e22ce; }
+  .family-c .btn-inject:hover { background: #6b21a8; }
+  .family-d .btn-inject { background: #b91c1c; }
+  .family-d .btn-inject:hover { background: #991b1b; }
 </style>
 </head>
 <body>
@@ -963,41 +1072,188 @@ HTML_DASHBOARD = r"""<!DOCTYPE html>
         </select>
       </div>
 
-      <!-- LAS 4 FAMILIAS DE CAOS -->
+      <!-- LAS 4 FAMILIAS DE CAOS CON PARÁMETROS MODIFICABLES -->
       <div class="families-container">
-        <!-- FAMILIA A -->
-        <div class="family-block">
-          <h5>Familia A: Latencia Inducida</h5>
-          <div class="btn-group-chaos">
-            <button class="btn-fault" onclick="activarFalla('A1_latencia_jitter', {mean_ms: 35.0, jitter_ms: 8.0}, 1.0)">A1: Latencia 35ms</button>
-            <button class="btn-fault" onclick="activarFalla('A2_timeout_controlado', {timeout_ms: 12.0}, 1.0)">A2: Timeout 12ms</button>
+        <!-- FAMILIA A: LATENCIA INDUCIDA -->
+        <div class="family-block family-a">
+          <div class="family-header">
+            <h5>Familia A: Latencia Inducida</h5>
+            <span class="family-tag">Degradación Red</span>
+          </div>
+
+          <!-- A1 -->
+          <div class="fault-item">
+            <div class="fault-item-header">
+              <span class="fault-code">A1</span>
+              <span class="fault-name">Latencia con Jitter</span>
+            </div>
+            <div class="fault-inputs-row">
+              <div class="input-field">
+                <span class="input-label">Media:</span>
+                <input type="number" id="param-a1-mean" value="35" min="5" max="1000" step="5" class="input-mini">
+                <span class="input-unit">ms</span>
+              </div>
+              <div class="input-field">
+                <span class="input-label">Jitter:</span>
+                <input type="number" id="param-a1-jitter" value="8" min="0" max="200" step="1" class="input-mini">
+                <span class="input-unit">ms</span>
+              </div>
+              <button class="btn-inject" onclick="inyectarA1()">Inyectar A1</button>
+            </div>
+          </div>
+
+          <!-- A2 -->
+          <div class="fault-item">
+            <div class="fault-item-header">
+              <span class="fault-code">A2</span>
+              <span class="fault-name">Timeout Controlado</span>
+            </div>
+            <div class="fault-inputs-row">
+              <div class="input-field">
+                <span class="input-label">Umbral Timeout:</span>
+                <input type="number" id="param-a2-timeout" value="12" min="1" max="100" step="1" class="input-mini">
+                <span class="input-unit">ms</span>
+              </div>
+              <button class="btn-inject" onclick="inyectarA2()">Inyectar A2</button>
+            </div>
           </div>
         </div>
 
-        <!-- FAMILIA B -->
-        <div class="family-block">
-          <h5>Familia B: Base de Datos</h5>
-          <div class="btn-group-chaos">
-            <button class="btn-fault" onclick="activarFalla('B1_pool_agotado', {rejection_probability: 0.45}, 0.45)">B1: Pool Agotado (45%)</button>
-            <button class="btn-fault" onclick="activarFalla('B2_bloqueo_recurso', {lock_wait_ms: 90.0, target_key: 'proveedor_1'}, 1.0)">B2: Bloqueo Recurso</button>
+        <!-- FAMILIA B: BASE DE DATOS -->
+        <div class="family-block family-b">
+          <div class="family-header">
+            <h5>Familia B: Base de Datos</h5>
+            <span class="family-tag">Saturación BD</span>
+          </div>
+
+          <!-- B1 -->
+          <div class="fault-item">
+            <div class="fault-item-header">
+              <span class="fault-code">B1</span>
+              <span class="fault-name">Pool de Conexiones Agotado</span>
+            </div>
+            <div class="fault-inputs-row">
+              <div class="input-field">
+                <span class="input-label">Tasa Rechazo:</span>
+                <input type="number" id="param-b1-pct" value="45" min="1" max="100" step="5" class="input-mini">
+                <span class="input-unit">%</span>
+              </div>
+              <button class="btn-inject" onclick="inyectarB1()">Inyectar B1</button>
+            </div>
+          </div>
+
+          <!-- B2 -->
+          <div class="fault-item">
+            <div class="fault-item-header">
+              <span class="fault-code">B2</span>
+              <span class="fault-name">Bloqueo de Recurso (Row Lock)</span>
+            </div>
+            <div class="fault-inputs-row">
+              <div class="input-field">
+                <span class="input-label">Espera Lock:</span>
+                <input type="number" id="param-b2-wait" value="90" min="10" max="1000" step="10" class="input-mini">
+                <span class="input-unit">ms</span>
+              </div>
+              <button class="btn-inject" onclick="inyectarB2()">Inyectar B2</button>
+            </div>
           </div>
         </div>
 
-        <!-- FAMILIA C -->
-        <div class="family-block">
-          <h5>Familia C: Recursos (USE)</h5>
-          <div class="btn-group-chaos">
-            <button class="btn-fault" onclick="activarFalla('C1_saturacion_cpu', {intensity_pct: 70.0, duration_s: 15.0, threads: 4}, 1.0)">C1: CPU 70% (15s auto)</button>
-            <button class="btn-fault" onclick="activarFalla('C2_presion_memoria', {size_mb: 250.0, duration_s: 15.0}, 1.0)">C2: RAM 250MB (15s)</button>
+        <!-- FAMILIA C: RECURSOS HOST (USE) -->
+        <div class="family-block family-c">
+          <div class="family-header">
+            <h5>Familia C: Recursos Host (USE)</h5>
+            <span class="family-tag">Saturación Nodo</span>
+          </div>
+
+          <!-- C1 -->
+          <div class="fault-item">
+            <div class="fault-item-header">
+              <span class="fault-code">C1</span>
+              <span class="fault-name">Saturación de CPU</span>
+            </div>
+            <div class="fault-inputs-row">
+              <div class="input-field">
+                <span class="input-label">Carga:</span>
+                <input type="number" id="param-c1-pct" value="70" min="10" max="95" step="5" class="input-mini">
+                <span class="input-unit">%</span>
+              </div>
+              <div class="input-field">
+                <span class="input-label">Duración:</span>
+                <input type="number" id="param-c1-dur" value="15" min="3" max="60" step="1" class="input-mini">
+                <span class="input-unit">s</span>
+              </div>
+              <button class="btn-inject" onclick="inyectarC1()">Inyectar C1 (Auto)</button>
+            </div>
+          </div>
+
+          <!-- C2 -->
+          <div class="fault-item">
+            <div class="fault-item-header">
+              <span class="fault-code">C2</span>
+              <span class="fault-name">Presión de Memoria RAM</span>
+            </div>
+            <div class="fault-inputs-row">
+              <div class="input-field">
+                <span class="input-label">Tamaño:</span>
+                <input type="number" id="param-c2-mb" value="250" min="50" max="1024" step="50" class="input-mini">
+                <span class="input-unit">MB</span>
+              </div>
+              <div class="input-field">
+                <span class="input-label">Duración:</span>
+                <input type="number" id="param-c2-dur" value="15" min="3" max="60" step="1" class="input-mini">
+                <span class="input-unit">s</span>
+              </div>
+              <button class="btn-inject" onclick="inyectarC2()">Inyectar C2 (Auto)</button>
+            </div>
           </div>
         </div>
 
-        <!-- FAMILIA D -->
-        <div class="family-block">
-          <h5>Familia D: Disponibilidad</h5>
-          <div class="btn-group-chaos">
-            <button class="btn-fault" onclick="activarFalla('D2_respuestas_5xx', {status_code: 503}, 0.35)">D2: Error 503 (35%)</button>
-            <button class="btn-fault" onclick="activarFalla('D1_particion_red', {duration_s: 5.0}, 1.0)">D1: Corte Red (5s auto)</button>
+        <!-- FAMILIA D: DISPONIBILIDAD Y RED -->
+        <div class="family-block family-d">
+          <div class="family-header">
+            <h5>Familia D: Disponibilidad & Red</h5>
+            <span class="family-tag">Corte Crítico</span>
+          </div>
+
+          <!-- D1 -->
+          <div class="fault-item">
+            <div class="fault-item-header">
+              <span class="fault-code">D1</span>
+              <span class="fault-name">Corte de Red (Socket Cerrado)</span>
+            </div>
+            <div class="fault-inputs-row">
+              <div class="input-field">
+                <span class="input-label">Duración Corte:</span>
+                <input type="number" id="param-d1-dur" value="5" min="1" max="30" step="1" class="input-mini">
+                <span class="input-unit">s</span>
+              </div>
+              <button class="btn-inject" onclick="inyectarD1()">Inyectar D1 (Auto)</button>
+            </div>
+          </div>
+
+          <!-- D2 -->
+          <div class="fault-item">
+            <div class="fault-item-header">
+              <span class="fault-code">D2</span>
+              <span class="fault-name">Respuestas HTTP 5xx Externas</span>
+            </div>
+            <div class="fault-inputs-row">
+              <div class="input-field">
+                <span class="input-label">Código:</span>
+                <select id="param-d2-status" class="select-mini">
+                  <option value="503" selected>503</option>
+                  <option value="502">502</option>
+                  <option value="500">500</option>
+                </select>
+              </div>
+              <div class="input-field">
+                <span class="input-label">Tasa Falla:</span>
+                <input type="number" id="param-d2-pct" value="35" min="1" max="100" step="5" class="input-mini">
+                <span class="input-unit">%</span>
+              </div>
+              <button class="btn-inject" onclick="inyectarD2()">Inyectar D2</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1232,6 +1488,52 @@ function renderTrazas() {
     `;
   }
   tbody.innerHTML = html;
+}
+
+function inyectarA1() {
+  const mean = parseFloat(document.getElementById('param-a1-mean').value) || 35.0;
+  const jitter = parseFloat(document.getElementById('param-a1-jitter').value) || 8.0;
+  activarFalla('A1_latencia_jitter', { mean_ms: mean, jitter_ms: jitter }, 1.0);
+}
+
+function inyectarA2() {
+  const timeout = parseFloat(document.getElementById('param-a2-timeout').value) || 12.0;
+  activarFalla('A2_timeout_controlado', { timeout_ms: timeout }, 1.0);
+}
+
+function inyectarB1() {
+  const rawPct = parseFloat(document.getElementById('param-b1-pct').value) || 45.0;
+  const pct = Math.max(0.01, Math.min(1.0, rawPct / 100.0));
+  activarFalla('B1_pool_agotado', { rejection_probability: pct }, pct);
+}
+
+function inyectarB2() {
+  const wait = parseFloat(document.getElementById('param-b2-wait').value) || 90.0;
+  activarFalla('B2_bloqueo_recurso', { lock_wait_ms: wait, target_key: 'proveedor_1' }, 1.0);
+}
+
+function inyectarC1() {
+  const intensity = parseFloat(document.getElementById('param-c1-pct').value) || 70.0;
+  const dur = parseFloat(document.getElementById('param-c1-dur').value) || 15.0;
+  activarFalla('C1_saturacion_cpu', { intensity_pct: intensity, duration_s: dur, threads: 4 }, 1.0);
+}
+
+function inyectarC2() {
+  const mb = parseFloat(document.getElementById('param-c2-mb').value) || 250.0;
+  const dur = parseFloat(document.getElementById('param-c2-dur').value) || 15.0;
+  activarFalla('C2_presion_memoria', { size_mb: mb, duration_s: dur }, 1.0);
+}
+
+function inyectarD1() {
+  const dur = parseFloat(document.getElementById('param-d1-dur').value) || 5.0;
+  activarFalla('D1_particion_red', { duration_s: dur }, 1.0);
+}
+
+function inyectarD2() {
+  const status = parseInt(document.getElementById('param-d2-status').value) || 503;
+  const rawPct = parseFloat(document.getElementById('param-d2-pct').value) || 35.0;
+  const pct = Math.max(0.01, Math.min(1.0, rawPct / 100.0));
+  activarFalla('D2_respuestas_5xx', { status_code: status, traffic_pct: pct }, pct);
 }
 
 async function activarFalla(faultId, params, trafficPct) {
