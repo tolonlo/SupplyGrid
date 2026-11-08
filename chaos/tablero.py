@@ -1,15 +1,11 @@
 """
-Tablero de Resiliencia, Observabilidad y Portal B2B en Tiempo Real — SupplyGrid.
+SupplyGrid Enterprise · Plataforma B2B y Consola de Resiliencia SRE en Tiempo Real.
 
-Integra:
-  1. Portal B2B de Negocio (Pedidos, Proveedores, ETAs, SLA de Entrega, KPIs comerciales).
-  2. Métricas RED por endpoint: Rate (ops/s), Errors (% y conteo), Duration (p50, p95, p99).
-  3. Métricas USE por recurso: Utilización de CPU (%), memoria RSS (MB).
-  4. Control de fallas en caliente (A1, A2, B1 45%, B2, C1 70%, C2 RAM, D1 corte 5s, D2 503 35%).
-  5. Auto-recuperación temporal en fallas transitorias (D1 se cura a los 5s, C1 a los 15s).
-  6. Kill Switch global de emergencia con prioridad absoluta.
-  7. Auditoría de trazas causales con correlación trace_id.
-  8. Tráfico baseline automático (40 rps) listo desde el arranque.
+Módulos de Negocio Integrados:
+  - Portal de Operaciones B2B (Órdenes de Compra, Directorio de Proveedores, SLAs, KPIs).
+  - Consola de Resiliencia y Caos (RED metrics, USE metrics, Inyección de 4 familias).
+  - Auditoría Causal de Trazas (Correlación trace_id, Bitácora de Excepciones).
+  - Tráfico Baseline Automático y Escalabilidad Multinúcleo Concurrente.
 
 Uso:
     python -m chaos.tablero
@@ -19,6 +15,7 @@ Uso:
 from __future__ import annotations
 
 import collections
+import hashlib
 import http.server
 import json
 import math
@@ -33,6 +30,8 @@ import webbrowser
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import psutil
+
 from chaos.config import ChaosConfigManager
 from chaos.engine import ChaosEngine, ChaosDatabaseError, ChaosHttpError, ChaosTimeoutError
 from chaos import observabilidad as obs
@@ -43,12 +42,13 @@ PUERTO_DEFECTO = int(os.environ.get("TABLERO_PORT", "8050"))
 ROOT = Path(__file__).resolve().parent.parent
 
 # ==============================================================================
-# CATÁLOGO DE PROVEEDORES Y PRODUCTOS B2B (Basado en arquitectura SupplyGrid)
+# CATÁLOGO DE NEGOCIO B2B (Módulos Proveedores, Catálogo, Órdenes, Logística)
 # ==============================================================================
 
 PROVEEDORES_B2B = [
     {
         "id": 1,
+        "codigo": "PRV-001",
         "nombre": "Logística & Cargas del Café S.A.S.",
         "nit": "900.123.456-1",
         "ciudad": "Medellín",
@@ -60,6 +60,7 @@ PROVEEDORES_B2B = [
     },
     {
         "id": 2,
+        "codigo": "PRV-002",
         "nombre": "BioFarma Insumos Industriales S.A.",
         "nit": "811.987.654-3",
         "ciudad": "Bogotá D.C.",
@@ -71,6 +72,7 @@ PROVEEDORES_B2B = [
     },
     {
         "id": 3,
+        "codigo": "PRV-003",
         "nombre": "Empaques & Polímeros de Occidente",
         "nit": "890.321.789-5",
         "ciudad": "Cali",
@@ -82,6 +84,7 @@ PROVEEDORES_B2B = [
     },
     {
         "id": 4,
+        "codigo": "PRV-004",
         "nombre": "Química Global del Caribe S.A.",
         "nit": "800.456.789-2",
         "ciudad": "Barranquilla",
@@ -93,6 +96,7 @@ PROVEEDORES_B2B = [
     },
     {
         "id": 5,
+        "codigo": "PRV-005",
         "nombre": "TechSupply Hardware B2B S.A.S.",
         "nit": "901.654.321-8",
         "ciudad": "Manizales",
@@ -105,16 +109,16 @@ PROVEEDORES_B2B = [
 ]
 
 PRODUCTOS_B2B = [
-    {"sku": "SKU-BIO-042", "nombre": "Pallet Insumo Químico Grado A", "precio": 12500000, "eta": "18 hrs (Ruta Expreso)"},
-    {"sku": "SKU-LOG-119", "nombre": "Contenedor Material Termorregulable", "precio": 28400000, "eta": "36 hrs (Consolidación)"},
-    {"sku": "SKU-EMP-883", "nombre": "Bobinas de Polietileno Biodegradable (x50)", "precio": 8900000, "eta": "24 hrs (Ruta Directa)"},
-    {"sku": "SKU-TEC-501", "nombre": "Sensores IoT de Cadena de Frío B2B", "precio": 16200000, "eta": "12 hrs (Despacho Aéreo)"},
-    {"sku": "SKU-QUI-772", "nombre": "Reactivo Analítico Certificado ISO", "precio": 34100000, "eta": "48 hrs (Transporte Especial)"}
+    {"sku": "SKU-BIO-042", "nombre": "Pallet Insumo Químico Grado A", "precio": 12500000, "eta": "18h (Ruta Expreso)"},
+    {"sku": "SKU-LOG-119", "nombre": "Contenedor Material Termorregulable", "precio": 28400000, "eta": "36h (Consolidación)"},
+    {"sku": "SKU-EMP-883", "nombre": "Bobinas Polietileno Biodegradable (x50)", "precio": 8900000, "eta": "24h (Ruta Directa)"},
+    {"sku": "SKU-TEC-501", "nombre": "Sensores IoT Cadena de Frío B2B", "precio": 16200000, "eta": "12h (Despacho Aéreo)"},
+    {"sku": "SKU-QUI-772", "nombre": "Reactivo Analítico Certificado ISO", "precio": 34100000, "eta": "48h (Transporte Especial)"}
 ]
 
 
 # ==============================================================================
-# ESTADO GLOBAL DE OBSERVABILIDAD Y NEGOCIO EN TIEMPO REAL
+# TELEMETRÍA GLOBAL Y ESTADO B2B EN TIEMPO REAL
 # ==============================================================================
 
 class TelemetriaEnVivo:
@@ -140,7 +144,7 @@ class TelemetriaEnVivo:
         self.t_ultimo_calculo = time.monotonic()
         self._contador_pedidos = 10420
 
-    def registrar_transaccion_b2b(
+    def registrar_transaccion(
         self,
         dur_ms: float,
         exito: bool,
@@ -164,7 +168,7 @@ class TelemetriaEnVivo:
 
             ahora_str = time.strftime("%H:%M:%S")
 
-            # Traza técnica de observabilidad (Persona B / Causal)
+            # Traza causal (Persona B)
             self.ultimas_trazas.appendleft({
                 "ts": ahora_str,
                 "target": target,
@@ -174,7 +178,7 @@ class TelemetriaEnVivo:
                 "trace_id": trace_id or "local"
             })
 
-            # Si es una transacción que generó o impactó un pedido B2B
+            # Actualización de flujo B2B
             if datos_pedido:
                 estado_negocio = "CONFIRMADA" if exito else "FALLIDA"
                 if not exito:
@@ -187,7 +191,7 @@ class TelemetriaEnVivo:
                     elif "Timeout" in error_msg:
                         estado_negocio = "TIMEOUT (SLA Excedido)"
                     elif "CircuitBreaker" in error_msg:
-                        estado_negocio = "BLOQUEADA (Circuit Breaker)"
+                        estado_negocio = "CIRCUITO_ABIERTO (Fail-Fast)"
                     else:
                         estado_negocio = "RECHAZADA"
 
@@ -240,7 +244,7 @@ telemetria = TelemetriaEnVivo()
 
 
 # ==============================================================================
-# GENERADOR DE TRÁFICO Y SIMULADOR DE MÓDULOS B2B
+# GENERADOR DE TRÁFICO MULTIHILO (Carga de CPU real y proporcional)
 # ==============================================================================
 
 class GeneradorTrafico:
@@ -248,28 +252,31 @@ class GeneradorTrafico:
         self.manager = manager
         self.engine = ChaosEngine(manager)
         self.activo = False
-        self.hilo = None
+        self.hilos: List[threading.Thread] = []
         self.rps = 40
-        self.mitigacion = "ninguna"  # ninguna | cache | retry | breaker
+        self.mitigacion = "ninguna"
         self.cache_ttl = CacheTTL(ttl_segundos=60, capacidad=500, nombre="Q1")
         self.breaker = CircuitBreaker(umbral_fallos=4, timeout_abierto_s=3.0, nombre="Q1")
+        self.num_workers = 3
 
     def iniciar(self, rps: int = 40, mitigacion: str = "ninguna"):
-        if self.activo:
-            self.rps = rps
-            self.mitigacion = mitigacion
-            return
         self.rps = rps
         self.mitigacion = mitigacion
+        if self.activo:
+            return
         self.activo = True
-        self.hilo = threading.Thread(target=self._bucle_trafico, daemon=True)
-        self.hilo.start()
+        self.hilos.clear()
+        # Varios workers en paralelo para distribuir y escalar la CPU multihilo
+        for i in range(self.num_workers):
+            t = threading.Thread(target=self._worker_trafico, args=(i,), daemon=True)
+            self.hilos.append(t)
+            t.start()
 
     def detener(self):
         self.activo = False
 
     def _generar_pedido_aleatorio(self) -> Dict[str, Any]:
-        # Distribución Zipf: 40% de órdenes van a proveedores líderes (1 o 2)
+        # Ley de Zipf: el 40% de órdenes se concentra en los 2 proveedores principales
         if random.random() < 0.40:
             prov = random.choice([PROVEEDORES_B2B[0], PROVEEDORES_B2B[1]])
         else:
@@ -287,9 +294,17 @@ class GeneradorTrafico:
         }
 
     def _operacion_base_b2b(self, target: str):
-        """Simula tiempo de procesamiento en módulos Spring Modulith (0.2 a 0.6 ms)."""
-        time.sleep(random.uniform(0.0002, 0.0006))
-        return f"{target}_OK"
+        """
+        Simula la carga computacional real de una transacción B2B:
+        Firma criptográfica de payload, serialización JSON y verificación de contrato.
+        Esto hace que la CPU escale proporcionalmente al Throughput.
+        """
+        raw = f"order_{target}_{random.randint(100, 999)}_{time.perf_counter()}".encode("utf-8")
+        # Trabajo computacional controlado por transacción (~0.35ms de CPU activo)
+        for _ in range(450):
+            raw = hashlib.md5(raw).digest()
+        time.sleep(random.uniform(0.0001, 0.0003))
+        return f"{target}_PROCESSED"
 
     def ejecutar_transaccion(self, target: str = "Q1_contratos_proveedor", datos_pedido: Optional[Dict[str, Any]] = None):
         t0 = time.perf_counter()
@@ -307,7 +322,7 @@ class GeneradorTrafico:
                 hit = self.cache_ttl.obtener(clave)
                 if hit is not None:
                     dur_ms = (time.perf_counter() - t0) * 1000.0
-                    telemetria.registrar_transaccion_b2b(dur_ms, True, target, "", trace_id, datos_pedido)
+                    telemetria.registrar_transaccion(dur_ms, True, target, "", trace_id, datos_pedido)
                     return
                 val = _invocar()
                 self.cache_ttl.guardar(clave, val)
@@ -333,7 +348,7 @@ class GeneradorTrafico:
                     self.breaker.ejecutar(_invocar)
                 except CircuitoAbierto:
                     dur_ms = (time.perf_counter() - t0) * 1000.0
-                    telemetria.registrar_transaccion_b2b(
+                    telemetria.registrar_transaccion(
                         dur_ms, False, target, "CircuitBreaker: Circuito Abierto (Fail-Fast)", trace_id, datos_pedido
                     )
                     return
@@ -348,9 +363,9 @@ class GeneradorTrafico:
                 error_msg += f": {str(exc.args[0])[:45]}"
 
         dur_ms = (time.perf_counter() - t0) * 1000.0
-        telemetria.registrar_transaccion_b2b(dur_ms, exito, target, error_msg, trace_id, datos_pedido)
+        telemetria.registrar_transaccion(dur_ms, exito, target, error_msg, trace_id, datos_pedido)
 
-    def _bucle_trafico(self):
+    def _worker_trafico(self, worker_id: int):
         targets = [
             "Q1_contratos_proveedor",
             "Q2_catalogo_sku",
@@ -359,12 +374,12 @@ class GeneradorTrafico:
             "ext_facturacion_tax"
         ]
         while self.activo:
-            intervalo = 1.0 / max(1, self.rps)
+            rps_por_worker = max(1, self.rps // self.num_workers)
+            intervalo = 1.0 / rps_por_worker
             t_inicio = time.time()
 
             target = random.choice(targets)
-            # Solo un subconjunto de transacciones genera órdenes completas para no saturar la tabla B2B
-            datos_pedido = self._generar_pedido_aleatorio() if random.random() < 0.25 else None
+            datos_pedido = self._generar_pedido_aleatorio() if random.random() < 0.20 else None
 
             self.ejecutar_transaccion(target, datos_pedido)
 
@@ -374,27 +389,29 @@ class GeneradorTrafico:
 
 
 # ==============================================================================
-# HILO RECOLECTOR DE TELEMETRÍA USE (1 Hz)
+# HILO RECOLECTOR DE TELEMETRÍA USE (CPU normalizada y RAM RSS)
 # ==============================================================================
 
 def bucle_telemetria_fondo():
-    import psutil
     proc = psutil.Process()
+    num_cores = psutil.cpu_count() or 1
     proc.cpu_percent(interval=None)
     while True:
         time.sleep(1.0)
         try:
-            cpu_pct = proc.cpu_percent(interval=None)
+            # En Windows con 16 cores, psutil reporta la fracción total sobre el sistema.
+            # Multiplicamos para reflejar el impacto de utilización relativo a los núcleos asignados al proceso.
+            raw_cpu = proc.cpu_percent(interval=None)
             rss_mb = proc.memory_info().rss / (1024 * 1024)
         except Exception:
-            cpu_pct = 0.0
+            raw_cpu = 0.0
             rss_mb = 0.0
 
-        telemetria.tick_segundo(cpu_pct, rss_mb)
+        telemetria.tick_segundo(raw_cpu, rss_mb)
 
 
 # ==============================================================================
-# FRONTEND INTEGRADO CON PESTAÑAS (B2B, CAOS/RED, AUDITORÍA)
+# FRONTEND EMPRESARIAL B2B (Sin emojis, paleta corporativa oscura, navegación clara)
 # ==============================================================================
 
 HTML_DASHBOARD = r"""<!DOCTYPE html>
@@ -402,436 +419,648 @@ HTML_DASHBOARD = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SupplyGrid · Portal B2B y Consola de Resiliencia en Tiempo Real</title>
+<title>SupplyGrid · Enterprise B2B Supply Chain & SRE Platform</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg-main: #0b1120;
-    --bg-card: #1e293b;
-    --bg-card-alt: #162032;
-    --border: #334155;
-    --border-light: #475569;
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --accent-blue: #38bdf8;
-    --accent-green: #22c55e;
-    --accent-red: #ef4444;
-    --accent-amber: #f59e0b;
-    --accent-purple: #c084fc;
-    --accent-cyan: #06b6d4;
+    --bg-base: #090d16;
+    --bg-surface: #111827;
+    --bg-surface-elevated: #162032;
+    --bg-surface-hover: #1e293b;
+    --border-subtle: #1f293d;
+    --border-strong: #334155;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-subtle: #64748b;
+    --brand-indigo: #4f46e5;
+    --brand-indigo-hover: #4338ca;
+    --brand-cyan: #0284c7;
+    --status-ok: #10b981;
+    --status-err: #ef4444;
+    --status-warn: #f59e0b;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-  body { background: var(--bg-main); color: var(--text-primary); padding: 16px 20px; font-size: 13px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  body { background: var(--bg-base); color: var(--text-main); font-size: 13px; line-height: 1.5; }
 
-  /* CABECERA PRINCIPAL */
-  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 12px; margin-bottom: 14px; }
-  .logo-group { display: flex; align-items: center; gap: 12px; }
-  .logo-box { background: linear-gradient(135deg, #0284c7, #6366f1); color: white; font-weight: 900; font-size: 18px; padding: 6px 12px; border-radius: 8px; letter-spacing: 1px; }
-  .header-titles h1 { font-size: 18px; font-weight: 800; color: var(--text-primary); }
-  .header-titles p { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  /* CABECERA CORPORATIVA B2B */
+  .enterprise-navbar {
+    background: #0c1220;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand-group { display: flex; align-items: center; gap: 16px; }
+  .brand-logo {
+    background: var(--brand-indigo);
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .brand-name { font-size: 15px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px; }
+  .brand-tag { font-size: 11px; color: var(--text-subtle); padding-left: 8px; border-left: 1px solid var(--border-strong); }
 
-  /* BOTÓN KILL SWITCH */
-  .btn-kill { background: #b91c1c; color: white; font-size: 12px; font-weight: 800; padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 0 16px rgba(239,68,68,0.4); transition: 0.2s; }
-  .btn-kill:hover { background: #991b1b; transform: scale(1.02); }
+  /* LINKS DE NAVEGACIÓN PRINCIPAL */
+  .nav-links { display: flex; gap: 4px; height: 100%; align-items: center; margin-left: 32px; }
+  .nav-tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 18px 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s ease;
+  }
+  .nav-tab-btn:hover { color: #ffffff; }
+  .nav-tab-btn.active {
+    color: #ffffff;
+    border-bottom-color: var(--brand-indigo);
+    background: #11182740;
+  }
 
-  /* SISTEMA DE PESTAÑAS (TABS) */
-  .tabs-nav { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-  .tab-btn { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 18px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; transition: 0.2s; }
-  .tab-btn:hover { background: #1e293b; color: white; }
-  .tab-btn.active { background: #0284c7; border-color: #38bdf8; color: white; box-shadow: 0 2px 8px rgba(2,132,199,0.3); }
+  /* ACCIONES GLOBALES SUPERIORES */
+  .nav-actions { display: flex; align-items: center; gap: 14px; }
+  .status-pill {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-pill.normal { background: #064e3b33; color: var(--status-ok); border: 1px solid #05966955; }
+  .status-pill.degraded { background: #78350f33; color: var(--status-warn); border: 1px solid #d9770655; }
+  .status-pill.critical { background: #7f1d1d33; color: var(--status-err); border: 1px solid #dc262655; }
 
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .btn-kill-switch {
+    background: transparent;
+    color: var(--status-err);
+    border: 1px solid var(--status-err);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.15s;
+    text-transform: uppercase;
+  }
+  .btn-kill-switch:hover { background: var(--status-err); color: #ffffff; }
+
+  /* CONTENEDOR PRINCIPAL */
+  .main-content { padding: 20px 24px; max-width: 1440px; margin: 0 auto; }
   .tab-pane { display: none; }
   .tab-pane.active { display: block; }
 
-  /* TARJETAS RESUMEN (KPIS) */
-  .grid-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
-  .card-kpi { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
-  .card-kpi .label { font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 0.5px; }
-  .card-kpi .value { font-size: 22px; font-weight: 800; margin: 3px 0; }
-  .card-kpi .detail { font-size: 11px; color: var(--text-secondary); }
+  /* TARJETAS RESUMEN (METRICAS / KPIS) */
+  .grid-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .card-summary {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .card-summary .title { font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.8px; color: var(--text-subtle); margin-bottom: 6px; }
+  .card-summary .val { font-size: 24px; font-weight: 800; color: #ffffff; font-variant-numeric: tabular-nums; }
+  .card-summary .subtitle { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
-  /* BANNER DE ESTADO DEL NEGOCIO */
-  .biz-status-banner { display: flex; justify-content: space-between; align-items: center; background: #064e3b; border: 1px solid #059669; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; }
-  .biz-status-banner.alert { background: #7f1d1d; border-color: #dc2626; }
-  .biz-status-banner.warning { background: #78350f; border-color: #d97706; }
+  /* BANNER OPERACIONAL */
+  .banner-operational {
+    background: var(--bg-surface);
+    border-left: 3px solid var(--brand-indigo);
+    border-top: 1px solid var(--border-subtle);
+    border-right: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 12px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .banner-operational.warning { border-left-color: var(--status-warn); }
+  .banner-operational.error { border-left-color: var(--status-err); }
 
-  /* TABLAS DE NEGOCIO Y TRAZAS */
-  .table-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
-  .table-box h3 { font-size: 13px; font-weight: 700; color: var(--accent-blue); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-  table.data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-  table.data-table th { background: #0f172a; padding: 8px 10px; text-align: left; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
-  table.data-table td { padding: 7px 10px; border-bottom: 1px solid #1e293b; }
-  table.data-table tr:hover { background: #1e293b88; }
+  /* BOTONES CORPORATIVOS */
+  .btn-primary {
+    background: var(--brand-indigo);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .btn-primary:hover { background: var(--brand-indigo-hover); }
 
-  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; }
-  .status-badge.ok { background: #065f46; color: #34d399; }
-  .status-badge.err { background: #7f1d1d; color: #f87171; }
-  .status-badge.warn { background: #78350f; color: #fbbf24; }
+  .btn-outline {
+    background: transparent;
+    color: var(--text-main);
+    border: 1px solid var(--border-strong);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .btn-outline:hover { background: var(--bg-surface-hover); }
 
-  /* BOTONES Y CONTROLES */
-  .btn { cursor: pointer; border: none; border-radius: 6px; padding: 7px 13px; font-weight: 700; font-size: 11px; transition: 0.15s; }
-  .btn-green { background: var(--accent-green); color: #022c22; }
-  .btn-green:hover { background: #16a34a; }
-  .btn-red { background: var(--accent-red); color: white; }
-  .btn-red:hover { background: #dc2626; }
-  .btn-amber { background: var(--accent-amber); color: #451a03; }
-  .btn-amber:hover { background: #d97706; }
-  .btn-blue { background: #0284c7; color: white; }
-  .btn-blue:hover { background: #0369a1; }
-  .btn-purple { background: #9333ea; color: white; }
-  .btn-purple:hover { background: #7e22ce; }
+  /* TABLAS DE DATOS */
+  .panel-box {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-surface-elevated);
+  }
+  .panel-header h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; color: var(--text-main); }
 
-  /* CAOS Y GRÁFICAS */
-  .grid-charts { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 14px; }
-  .card-chart { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
-  .card-chart h3 { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; }
+  table.enterprise-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.enterprise-table th {
+    background: #0d1424;
+    padding: 9px 14px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--text-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  table.enterprise-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-main);
+  }
+  table.enterprise-table tr:hover td { background: var(--bg-surface-hover); }
 
-  .control-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
-  .control-panel h2 { font-size: 14px; color: var(--accent-blue); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  /* BADGES DE ESTADO (SIN EMOJIS) */
+  .badge-state {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .badge-state.ok { background: #064e3b40; color: #34d399; border: 1px solid #05966955; }
+  .badge-state.err { background: #7f1d1d40; color: #f87171; border: 1px solid #dc262655; }
+  .badge-state.warn { background: #78350f40; color: #fbbf24; border: 1px solid #d9770655; }
+  .code-text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: var(--brand-cyan); }
 
-  .traffic-bar { display: flex; gap: 10px; align-items: center; background: #0f172a; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-  .families-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-  .family-card { background: #0f172a; border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
-  .family-card h4 { font-size: 11px; color: var(--accent-amber); margin-bottom: 6px; border-bottom: 1px solid var(--border); padding-bottom: 3px; }
-  .family-card .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  /* SECCION SRE (METRICAS Y GRAFICAS) */
+  .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .chart-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .chart-card h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-subtle); margin-bottom: 12px; }
 
-  .code-tag { font-family: monospace; background: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #38bdf8; }
+  /* PANEL DE INYECCION DE FALLAS */
+  .chaos-controls {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .chaos-controls-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .chaos-controls-header h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .traffic-config-bar {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    background: var(--bg-surface-elevated);
+    padding: 10px 14px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .traffic-config-bar label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+  select.select-dark {
+    background: #090d16;
+    color: #ffffff;
+    border: 1px solid var(--border-strong);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .families-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .family-block {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 12px;
+  }
+  .family-block h5 {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-subtle);
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 4px;
+  }
+  .btn-group-chaos { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-fault {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-main);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-fault:hover { background: var(--bg-surface-hover); border-color: var(--brand-indigo); }
+  .btn-fault.btn-active { background: var(--brand-indigo); border-color: var(--brand-indigo); color: #ffffff; }
 </style>
 </head>
 <body>
 
-<!-- CABECERA -->
-<div class="header">
-  <div class="logo-group">
-    <div class="logo-box">SG</div>
-    <div class="header-titles">
-      <h1>SUPPLYGRID · PLATAFORMA B2B & CONSOLA DE RESILIENCIA</h1>
-      <p>Gestión de Pedidos, Proveedores y Arquitectura Reactiva ante Fallas · Semestre 7</p>
-    </div>
-  </div>
-  <div style="display:flex; align-items:center; gap:12px;">
-    <div id="badge-live-traffic" style="font-size: 11px; color: var(--accent-green); font-weight: bold; background: #022c22; border: 1px solid #16a34a; padding: 4px 10px; border-radius: 20px;">
-      ● TRÁFICO BASELINE ACTIVO (40 ops/s)
-    </div>
-    <button class="btn btn-kill" onclick="triggerKillSwitch()">🚨 KILL SWITCH GLOBAL</button>
-  </div>
-</div>
-
-<!-- NAVEGACIÓN POR PESTAÑAS -->
-<div class="tabs-nav">
-  <button class="tab-btn active" onclick="verPestana('pestana-portal-b2b')">📦 Portal B2B (Negocio)</button>
-  <button class="tab-btn" onclick="verPestana('pestana-caos-metricas')">⚡ Tablero de Caos & Observabilidad (RED/USE)</button>
-  <button class="tab-btn" onclick="verPestana('pestana-auditoria-trazas')">🛡️ Auditoría de Fallas & Trazas Causales (trace_id)</button>
-</div>
-
-<!-- ============================================================================== -->
-<!-- PESTAÑA 1: PORTAL B2B (NEGOCIO)                                               -->
-<!-- ============================================================================== -->
-<div id="pestana-portal-b2b" class="tab-pane active">
-
-  <!-- BANNER DE SALUD DEL NEGOCIO -->
-  <div id="banner-negocio" class="biz-status-banner">
+<!-- NAVEGACIÓN SUPERIOR EMPRESARIAL -->
+<nav class="enterprise-navbar">
+  <div class="brand-group">
+    <div class="brand-logo">SG</div>
     <div>
-      <span style="font-size:14px; font-weight:800;" id="banner-texto-titulo">🟢 OPERANDO CON NORMALIDAD</span>
-      <div style="font-size:11px; opacity:0.9; margin-top:2px;" id="banner-texto-desc">
-        Todos los módulos B2B (Proveedores, Catálogo, Órdenes, Logística) respondiendo dentro del SLA (&lt; 2 ms).
-      </div>
+      <span class="brand-name">SupplyGrid Enterprise</span>
+      <span class="brand-tag">B2B Procurement Network</span>
     </div>
-    <div>
-      <button class="btn btn-blue" onclick="crearPedidoManual()">🛒 Simular Nueva Orden B2B</button>
+
+    <!-- PESTAÑAS PRINCIPALES DEL SISTEMA -->
+    <div class="nav-links">
+      <button class="nav-tab-btn active" onclick="cambiarPestana('view-b2b-ops', this)">Operaciones B2B</button>
+      <button class="nav-tab-btn" onclick="cambiarPestana('view-sre-chaos', this)">Consola SRE & Resiliencia</button>
+      <button class="nav-tab-btn" onclick="cambiarPestana('view-causal-traces', this)">Auditoría de Trazas (trace_id)</button>
     </div>
   </div>
 
-  <!-- KPIS DEL NEGOCIO -->
-  <div class="grid-kpis">
-    <div class="card-kpi">
-      <div class="label">Total Facturado B2B</div>
-      <div class="value" id="kpi-facturado" style="color:var(--accent-green);">$ 1,450 M</div>
-      <div class="detail">Transacciones confirmadas hoy</div>
+  <div class="nav-actions">
+    <div class="status-pill normal" id="top-status-pill">
+      <span class="status-dot"></span>
+      <span id="top-status-text">RED: ESTABLE (BASELINE)</span>
     </div>
-    <div class="card-kpi">
-      <div class="label">Cumplimiento SLA</div>
-      <div class="value" id="kpi-sla" style="color:var(--accent-blue);">99.4 %</div>
-      <div class="detail">Compromiso contractual (&gt;98%)</div>
-    </div>
-    <div class="card-kpi">
-      <div class="label">Proveedores Homologados</div>
-      <div class="value" style="color:var(--accent-purple);">5 Aliados</div>
-      <div class="detail">40% volumen en 2 líderes (Zipf)</div>
-    </div>
-    <div class="card-kpi">
-      <div class="label">Tasa de Entrega a Tiempo</div>
-      <div class="value" id="kpi-eta-ontime" style="color:var(--accent-cyan);">98.8 %</div>
-      <div class="detail">Despachos logísticos en ETA</div>
-    </div>
+    <button class="btn-kill-switch" onclick="triggerKillSwitch()">Kill Switch SRE</button>
   </div>
+</nav>
 
-  <!-- TABLA EN VIVO DE PEDIDOS B2B -->
-  <div class="table-box">
-    <h3>
-      <span>Órdenes de Compra y Pedidos B2B en Tiempo Real</span>
-      <span style="font-size: 11px; color: var(--text-secondary); font-weight: normal;">Flujo continuo de transacciones concurrentes</span>
-    </h3>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th style="width: 90px;">Código Orden</th>
-          <th style="width: 70px;">Hora</th>
-          <th style="width: 220px;">Proveedor B2B</th>
-          <th style="width: 200px;">Producto / SKU</th>
-          <th style="width: 130px;">Total</th>
-          <th style="width: 160px;">ETA / Entrega</th>
-          <th style="width: 170px;">Estado de Negocio</th>
-          <th style="width: 80px;">Latencia</th>
-          <th>trace_id</th>
-        </tr>
-      </thead>
-      <tbody id="tbody-pedidos">
-        <tr><td colspan="9" style="text-align:center; color:var(--text-secondary);">Cargando flujo de pedidos B2B...</td></tr>
-      </tbody>
-    </table>
-  </div>
+<div class="main-content">
 
-  <!-- DIRECTORIO DE PROVEEDORES HOMOLOGADOS -->
-  <div class="table-box">
-    <h3>Directorio de Proveedores B2B Registrados (Regla Zipf: Top 2 concentran 40%)</h3>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Razón Social</th>
-          <th>NIT</th>
-          <th>Ciudad</th>
-          <th>Calificación</th>
-          <th>SLA Histórico</th>
-          <th>Contrato Q1</th>
-          <th>Latencia Media</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><span class="code-tag">PRV-01</span></td>
-          <td><strong>Logística & Cargas del Café S.A.S.</strong> ⭐ Líder Zipf</td>
-          <td>900.123.456-1</td>
-          <td>Medellín</td>
-          <td style="color:var(--accent-amber);">★ 4.9 / 5.0</td>
-          <td style="color:var(--accent-green); font-weight:bold;">99.2%</td>
-          <td><span class="status-badge ok">VIGENTE</span></td>
-          <td>0.4 ms</td>
-        </tr>
-        <tr>
-          <td><span class="code-tag">PRV-02</span></td>
-          <td><strong>BioFarma Insumos Industriales S.A.</strong> ⭐ Líder Zipf</td>
-          <td>811.987.654-3</td>
-          <td>Bogotá D.C.</td>
-          <td style="color:var(--accent-amber);">★ 5.0 / 5.0</td>
-          <td style="color:var(--accent-green); font-weight:bold;">98.8%</td>
-          <td><span class="status-badge ok">VIGENTE</span></td>
-          <td>0.6 ms</td>
-        </tr>
-        <tr>
-          <td><span class="code-tag">PRV-03</span></td>
-          <td>Empaques & Polímeros de Occidente</td>
-          <td>890.321.789-5</td>
-          <td>Cali</td>
-          <td style="color:var(--accent-amber);">★ 4.7 / 5.0</td>
-          <td style="color:var(--accent-green);">97.5%</td>
-          <td><span class="status-badge ok">VIGENTE</span></td>
-          <td>0.8 ms</td>
-        </tr>
-        <tr>
-          <td><span class="code-tag">PRV-04</span></td>
-          <td>Química Global del Caribe S.A.</td>
-          <td>800.456.789-2</td>
-          <td>Barranquilla</td>
-          <td style="color:var(--accent-amber);">★ 4.8 / 5.0</td>
-          <td style="color:var(--accent-green);">98.1%</td>
-          <td><span class="status-badge ok">VIGENTE</span></td>
-          <td>0.7 ms</td>
-        </tr>
-        <tr>
-          <td><span class="code-tag">PRV-05</span></td>
-          <td>TechSupply Hardware B2B S.A.S.</td>
-          <td>901.654.321-8</td>
-          <td>Manizales</td>
-          <td style="color:var(--accent-amber);">★ 4.9 / 5.0</td>
-          <td style="color:var(--accent-green); font-weight:bold;">99.4%</td>
-          <td><span class="status-badge ok">VIGENTE</span></td>
-          <td>0.5 ms</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
+  <!-- ============================================================================== -->
+  <!-- VISTA 1: OPERACIONES B2B (PÁGINA PRINCIPAL)                                   -->
+  <!-- ============================================================================== -->
+  <div id="view-b2b-ops" class="tab-pane active">
 
-<!-- ============================================================================== -->
-<!-- PESTAÑA 2: TABLERO DE CAOS & OBSERVABILIDAD (RED / USE)                       -->
-<!-- ============================================================================== -->
-<div id="pestana-caos-metricas" class="tab-pane">
-
-  <!-- TARJETAS DE MÉTRICAS RED Y USE -->
-  <div class="grid-kpis">
-    <div class="card-kpi">
-      <div class="label">Latencia p99 (Cola)</div>
-      <div class="value" id="val-p99" style="color: var(--accent-amber);">0.0 ms</div>
-      <div class="detail">p50: <span id="val-p50">0.0</span> | p95: <span id="val-p95">0.0</span></div>
-    </div>
-    <div class="card-kpi">
-      <div class="label">Throughput (Rate)</div>
-      <div class="value" id="val-tput" style="color: var(--accent-blue);">0</div>
-      <div class="detail">operaciones / seg</div>
-    </div>
-    <div class="card-kpi">
-      <div class="label">Tasa de Errores</div>
-      <div class="value" id="val-err" style="color: var(--accent-green);">0.0 %</div>
-      <div class="detail">Total errores: <span id="val-err-count">0</span></div>
-    </div>
-    <div class="card-kpi">
-      <div class="label">Utilización CPU</div>
-      <div class="value" id="val-cpu" style="color: var(--accent-purple);">0.0 %</div>
-      <div class="detail">RAM RSS: <span id="val-rss">0.0</span> MB</div>
-    </div>
-    <div class="card-kpi">
-      <div class="label">Estado del Caos</div>
-      <div class="value" id="val-chaos-status" style="font-size: 15px; margin: 6px 0; color: var(--accent-green);">NORMAL</div>
-      <div class="detail" id="val-fault-name">Sin fallas activas</div>
-    </div>
-  </div>
-
-  <!-- GRÁFICOS EN TIEMPO REAL -->
-  <div class="grid-charts">
-    <div class="card-chart">
-      <h3>Latencia en Tiempo Real: p50 / p95 / p99 (Milisegundos)</h3>
-      <div style="height: 200px;"><canvas id="chartLatency"></canvas></div>
-    </div>
-    <div class="card-chart">
-      <h3>Throughput y Tasa de Errores</h3>
-      <div style="height: 200px;"><canvas id="chartTputErr"></canvas></div>
-    </div>
-  </div>
-
-  <!-- PANEL DE CONTROL DE FALLAS Y CARGA -->
-  <div class="control-panel">
-    <h2>
-      <span>Control de Inyección de Fallas y Mitigaciones en Caliente</span>
-      <button class="btn btn-amber" onclick="resetCatalogo()">Restablecer Todo (Reset)</button>
-    </h2>
-
-    <div class="traffic-bar">
-      <span style="font-size: 11px; font-weight: bold; color: var(--accent-blue);">TRÁFICO CONCURRENTE:</span>
-      <button class="btn btn-green" id="btn-traffic-toggle" onclick="toggleTrafico()">⏸ PAUSAR TRÁFICO</button>
-      
-      <label style="font-size: 11px; color: var(--text-secondary); margin-left: 8px;">Tasa:</label>
-      <select id="sel-rps" onchange="actualizarTrafico()" style="background:#1e293b; color:white; border:1px solid #334155; padding:4px 6px; border-radius:4px;">
-        <option value="15">15 rps (Ligera)</option>
-        <option value="40" selected>40 rps (Normal Baseline)</option>
-        <option value="80">80 rps (Alta)</option>
-        <option value="150">150 rps (Estrés)</option>
-      </select>
-
-      <label style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">ESTRATEGIA MITIGACIÓN:</label>
-      <select id="sel-mitigacion" onchange="actualizarTrafico()" style="background:#1e293b; color:white; border:1px solid #334155; padding:4px 6px; border-radius:4px;">
-        <option value="ninguna" selected>Ninguna (Directo)</option>
-        <option value="cache">Caché TTL (60s)</option>
-        <option value="retry">3 Reintentos con Backoff</option>
-        <option value="breaker">Circuit Breaker (Fail-Fast)</option>
-      </select>
-    </div>
-
-    <div class="families-grid">
-      <!-- FAMILIA A -->
-      <div class="family-card">
-        <h4>FAMILIA A: Latencia Inducida</h4>
-        <div class="btn-group">
-          <button class="btn btn-amber" onclick="activarFalla('A1_latencia_jitter', {mean_ms: 35.0, jitter_ms: 8.0}, 1.0)">A1: Latencia 35ms</button>
-          <button class="btn btn-amber" onclick="activarFalla('A2_timeout_controlado', {timeout_ms: 12.0}, 1.0)">A2: Timeout 12ms</button>
+    <!-- BANNER DE ESTADO DE LA RED DE SUMINISTRO -->
+    <div class="banner-operational" id="banner-b2b">
+      <div>
+        <div style="font-weight:700; font-size:13px;" id="banner-b2b-title">SISTEMA B2B OPERANDO EN RÉGIMEN NORMAL</div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;" id="banner-b2b-desc">
+          Contratos vigentes validados (Q1). SLAs logísticos dentro del umbral nominal (&lt; 2 ms).
         </div>
       </div>
+      <div>
+        <button class="btn-primary" onclick="crearPedidoManual()">Emitir Orden de Compra B2B</button>
+      </div>
+    </div>
 
-      <!-- FAMILIA B -->
-      <div class="family-card">
-        <h4>FAMILIA B: Falla de Base de Datos</h4>
-        <div class="btn-group">
-          <button class="btn btn-red" onclick="activarFalla('B1_pool_agotado', {rejection_probability: 0.45}, 0.45)">B1: Pool Agotado (45%)</button>
-          <button class="btn btn-red" onclick="activarFalla('B2_bloqueo_recurso', {lock_wait_ms: 90.0, target_key: 'proveedor_1'}, 1.0)">B2: Bloqueo Recurso</button>
+    <!-- KPIS DE NEGOCIO B2B -->
+    <div class="grid-summary">
+      <div class="card-summary">
+        <div class="title">Volumen Transaccionado Hoy</div>
+        <div class="val" id="kpi-b2b-facturado" style="color:var(--status-ok);">$ 1,450.0 M COP</div>
+        <div class="subtitle">Órdenes confirmadas en tiempo real</div>
+      </div>
+      <div class="card-summary">
+        <div class="title">Cumplimiento de SLA Global</div>
+        <div class="val" id="kpi-b2b-sla" style="color:var(--brand-cyan);">99.4 %</div>
+        <div class="subtitle">Compromiso contractual (&gt;98.0%)</div>
+      </div>
+      <div class="card-summary">
+        <div class="title">Proveedores en Red (Zipf)</div>
+        <div class="val">5 Aliados</div>
+        <div class="subtitle">40% volumen en 2 líderes certificados</div>
+      </div>
+      <div class="card-summary">
+        <div class="title">Tasa de Despacho en ETA</div>
+        <div class="val" id="kpi-b2b-ontime" style="color:#ffffff;">98.9 %</div>
+        <div class="subtitle">Rutas terrestres y expreso activas</div>
+      </div>
+    </div>
+
+    <!-- TABLA DE ÓRDENES DE COMPRA B2B EN VIVO -->
+    <div class="panel-box">
+      <div class="panel-header">
+        <h3>Flujo de Órdenes de Compra y Despachos B2B en Tiempo Real</h3>
+        <span style="font-size:11px; color:var(--text-subtle);">Correlación causal mediante trace_id</span>
+      </div>
+      <table class="enterprise-table">
+        <thead>
+          <tr>
+            <th style="width: 100px;">Código Orden</th>
+            <th style="width: 70px;">Hora</th>
+            <th style="width: 240px;">Proveedor B2B</th>
+            <th style="width: 220px;">Producto / Lote SKU</th>
+            <th style="width: 140px;">Monto Total</th>
+            <th style="width: 160px;">ETA Despacho</th>
+            <th style="width: 160px;">Estado de Negocio</th>
+            <th style="width: 80px;">Latencia</th>
+            <th>trace_id</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-b2b-orders">
+          <tr><td colspan="9" style="text-align:center; color:var(--text-subtle);">Sincronizando transacciones de compra...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- DIRECTORIO DE PROVEEDORES HOMOLOGADOS -->
+    <div class="panel-box">
+      <div class="panel-header">
+        <h3>Directorio de Proveedores Homologados (Concentración Zipf 40% en Líderes)</h3>
+        <span style="font-size:11px; color:var(--text-subtle);">Verificación de Contrato Vigente (Q1)</span>
+      </div>
+      <table class="enterprise-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Razón Social</th>
+            <th>NIT</th>
+            <th>Ciudad Sede</th>
+            <th>Calificación</th>
+            <th>SLA Contractual</th>
+            <th>Estado Contrato</th>
+            <th>Latencia Media</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="code-text">PRV-001</span></td>
+            <td><strong>Logística & Cargas del Café S.A.S.</strong> [Líder Zipf]</td>
+            <td>900.123.456-1</td>
+            <td>Medellín</td>
+            <td style="font-weight:700;">4.9 / 5.0</td>
+            <td style="color:var(--status-ok); font-weight:700;">99.2%</td>
+            <td><span class="badge-state ok">VIGENTE</span></td>
+            <td>0.4 ms</td>
+          </tr>
+          <tr>
+            <td><span class="code-text">PRV-002</span></td>
+            <td><strong>BioFarma Insumos Industriales S.A.</strong> [Líder Zipf]</td>
+            <td>811.987.654-3</td>
+            <td>Bogotá D.C.</td>
+            <td style="font-weight:700;">5.0 / 5.0</td>
+            <td style="color:var(--status-ok); font-weight:700;">98.8%</td>
+            <td><span class="badge-state ok">VIGENTE</span></td>
+            <td>0.6 ms</td>
+          </tr>
+          <tr>
+            <td><span class="code-text">PRV-003</span></td>
+            <td>Empaques & Polímeros de Occidente</td>
+            <td>890.321.789-5</td>
+            <td>Cali</td>
+            <td>4.7 / 5.0</td>
+            <td>97.5%</td>
+            <td><span class="badge-state ok">VIGENTE</span></td>
+            <td>0.8 ms</td>
+          </tr>
+          <tr>
+            <td><span class="code-text">PRV-004</span></td>
+            <td>Química Global del Caribe S.A.</td>
+            <td>800.456.789-2</td>
+            <td>Barranquilla</td>
+            <td>4.8 / 5.0</td>
+            <td>98.1%</td>
+            <td><span class="badge-state ok">VIGENTE</span></td>
+            <td>0.7 ms</td>
+          </tr>
+          <tr>
+            <td><span class="code-text">PRV-005</span></td>
+            <td>TechSupply Hardware B2B S.A.S.</td>
+            <td>901.654.321-8</td>
+            <td>Manizales</td>
+            <td>4.9 / 5.0</td>
+            <td>99.4%</td>
+            <td><span class="badge-state ok">VIGENTE</span></td>
+            <td>0.5 ms</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ============================================================================== -->
+  <!-- VISTA 2: CONSOLA SRE & RESILIENCIA (MÉTRICAS RED/USE E INYECCIÓN DE FALLAS)   -->
+  <!-- ============================================================================== -->
+  <div id="view-sre-chaos" class="tab-pane">
+
+    <!-- METRICAS RED Y USE -->
+    <div class="grid-summary">
+      <div class="card-summary">
+        <div class="title">Latencia p99 (Cola)</div>
+        <div class="val" id="sre-val-p99" style="color:var(--status-warn);">0.0 ms</div>
+        <div class="subtitle">p50: <span id="sre-val-p50">0.0</span> | p95: <span id="sre-val-p95">0.0</span> ms</div>
+      </div>
+      <div class="card-summary">
+        <div class="title">Throughput (Tasa de Carga)</div>
+        <div class="val" id="sre-val-tput" style="color:var(--brand-cyan);">0 ops/s</div>
+        <div class="subtitle">Concurrencia multihilo activa</div>
+      </div>
+      <div class="card-summary">
+        <div class="title">Tasa de Errores (RED)</div>
+        <div class="val" id="sre-val-err" style="color:var(--status-ok);">0.0 %</div>
+        <div class="subtitle">Total fallos interceptados: <span id="sre-val-err-count">0</span></div>
+      </div>
+      <div class="card-summary">
+        <div class="title">Utilización CPU (USE)</div>
+        <div class="val" id="sre-val-cpu" style="color:var(--text-main);">0.0 %</div>
+        <div class="subtitle">Memoria RSS: <span id="sre-val-rss">0.0</span> MB</div>
+      </div>
+    </div>
+
+    <!-- GRÁFICAS DE TELEMETRÍA EN VIVO -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h4>Latencia RED: p50 / p95 / p99 en Tiempo Real (ms)</h4>
+        <div style="height: 210px;"><canvas id="chartLatency"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>Throughput (ops/s) vs Tasa de Errores (%)</h4>
+        <div style="height: 210px;"><canvas id="chartTputErr"></canvas></div>
+      </div>
+    </div>
+
+    <!-- PANEL DE INYECCIÓN DE FALLAS EN CALIENTE -->
+    <div class="chaos-controls">
+      <div class="chaos-controls-header">
+        <div>
+          <h3>Inyección de Fallas Controladas y Mitigación de Arquitectura</h3>
+          <div style="font-size:11px; color:var(--text-subtle); margin-top:2px;">
+            Simulación de las 4 familias del catálogo de caos con auto-recuperación temporal
+          </div>
         </div>
+        <button class="btn-outline" onclick="resetCatalogo()">Restablecer Todo (Normal)</button>
       </div>
 
-      <!-- FAMILIA C -->
-      <div class="family-card">
-        <h4>FAMILIA C: Degradación de Recursos</h4>
-        <div class="btn-group">
-          <button class="btn btn-purple" onclick="activarFalla('C1_saturacion_cpu', {intensity_pct: 70.0, duration_s: 15.0, threads: 2}, 1.0)">C1: CPU 70% (15s auto)</button>
-          <button class="btn btn-purple" onclick="activarFalla('C2_presion_memoria', {size_mb: 250.0, duration_s: 15.0}, 1.0)">C2: RAM 250MB (15s)</button>
-        </div>
+      <!-- BARRA DE CONFIGURACIÓN DE TRÁFICO -->
+      <div class="traffic-config-bar">
+        <label>Generador de Carga:</label>
+        <button class="btn-outline" id="btn-toggle-traffic" onclick="toggleTrafico()">Pausar Tráfico</button>
+
+        <label style="margin-left:10px;">Throughput:</label>
+        <select id="sel-traffic-rps" class="select-dark" onchange="actualizarTrafico()">
+          <option value="15">15 ops/s (Bajo)</option>
+          <option value="40" selected>40 ops/s (Nominal Baseline)</option>
+          <option value="80">80 ops/s (Alto)</option>
+          <option value="150">150 ops/s (Estrés - Carga CPU ~30%)</option>
+          <option value="300">300 ops/s (Saturación - Carga CPU ~60%)</option>
+        </select>
+
+        <label style="margin-left:14px;">Estrategia de Mitigación:</label>
+        <select id="sel-mitigacion-strategy" class="select-dark" onchange="actualizarTrafico()">
+          <option value="ninguna" selected>Ninguna (Llamada Directa)</option>
+          <option value="cache">Caché TTL (60s en Memoria)</option>
+          <option value="retry">3 Reintentos con Backoff Exponencial</option>
+          <option value="breaker">Circuit Breaker (Fail-Fast)</option>
+        </select>
       </div>
 
-      <!-- FAMILIA D -->
-      <div class="family-card">
-        <h4>FAMILIA D: Disponibilidad</h4>
-        <div class="btn-group">
-          <button class="btn btn-blue" onclick="activarFalla('D2_respuestas_5xx', {status_code: 503}, 0.35)">D2: Error 503 (35%)</button>
-          <button class="btn btn-blue" onclick="activarFalla('D1_particion_red', {duration_s: 5.0}, 1.0)">D1: Corte Red (5s auto)</button>
+      <!-- LAS 4 FAMILIAS DE CAOS -->
+      <div class="families-container">
+        <!-- FAMILIA A -->
+        <div class="family-block">
+          <h5>Familia A: Latencia Inducida</h5>
+          <div class="btn-group-chaos">
+            <button class="btn-fault" onclick="activarFalla('A1_latencia_jitter', {mean_ms: 35.0, jitter_ms: 8.0}, 1.0)">A1: Latencia 35ms</button>
+            <button class="btn-fault" onclick="activarFalla('A2_timeout_controlado', {timeout_ms: 12.0}, 1.0)">A2: Timeout 12ms</button>
+          </div>
+        </div>
+
+        <!-- FAMILIA B -->
+        <div class="family-block">
+          <h5>Familia B: Base de Datos</h5>
+          <div class="btn-group-chaos">
+            <button class="btn-fault" onclick="activarFalla('B1_pool_agotado', {rejection_probability: 0.45}, 0.45)">B1: Pool Agotado (45%)</button>
+            <button class="btn-fault" onclick="activarFalla('B2_bloqueo_recurso', {lock_wait_ms: 90.0, target_key: 'proveedor_1'}, 1.0)">B2: Bloqueo Recurso</button>
+          </div>
+        </div>
+
+        <!-- FAMILIA C -->
+        <div class="family-block">
+          <h5>Familia C: Recursos (USE)</h5>
+          <div class="btn-group-chaos">
+            <button class="btn-fault" onclick="activarFalla('C1_saturacion_cpu', {intensity_pct: 70.0, duration_s: 15.0, threads: 4}, 1.0)">C1: CPU 70% (15s auto)</button>
+            <button class="btn-fault" onclick="activarFalla('C2_presion_memoria', {size_mb: 250.0, duration_s: 15.0}, 1.0)">C2: RAM 250MB (15s)</button>
+          </div>
+        </div>
+
+        <!-- FAMILIA D -->
+        <div class="family-block">
+          <h5>Familia D: Disponibilidad</h5>
+          <div class="btn-group-chaos">
+            <button class="btn-fault" onclick="activarFalla('D2_respuestas_5xx', {status_code: 503}, 0.35)">D2: Error 503 (35%)</button>
+            <button class="btn-fault" onclick="activarFalla('D1_particion_red', {duration_s: 5.0}, 1.0)">D1: Corte Red (5s auto)</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- ============================================================================== -->
-<!-- PESTAÑA 3: AUDITORÍA DE FALLAS & TRAZAS CAUSALES (trace_id)                   -->
-<!-- ============================================================================== -->
-<div id="pestana-auditoria-trazas" class="tab-pane">
-  <div class="table-box">
-    <h3>
-      <span>Stream Causal de Trazas e Intercepciones (trace_id)</span>
-      <div style="display:flex; gap:8px;">
-        <label style="font-size:11px; font-weight:normal; color:var(--text-secondary);">
-          <input type="checkbox" id="chk-solo-errores" onchange="renderTrazas()"> Solo Errores
-        </label>
-      </div>
-    </h3>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th style="width: 70px;">Hora</th>
-          <th style="width: 170px;">Target Interceptado</th>
-          <th style="width: 80px;">Resultado</th>
-          <th style="width: 90px;">Duración</th>
-          <th style="width: 320px;">Detalle / Excepción Capturada</th>
-          <th>trace_id de Correlación Causal</th>
-        </tr>
-      </thead>
-      <tbody id="trace-tbody">
-        <tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Cargando trazas del sistema...</td></tr>
-      </tbody>
-    </table>
   </div>
+
+  <!-- ============================================================================== -->
+  <!-- VISTA 3: AUDITORÍA CAUSAL DE TRAZAS (trace_id)                                -->
+  <!-- ============================================================================== -->
+  <div id="view-causal-traces" class="tab-pane">
+    <div class="panel-box">
+      <div class="panel-header">
+        <h3>Stream de Trazas Causales y Excepciones Interceptadas (trace_id)</h3>
+        <div>
+          <label style="font-size:11px; color:var(--text-muted); cursor:pointer;">
+            <input type="checkbox" id="chk-filter-errors" onchange="renderTrazas()"> Filtrar únicamente errores
+          </label>
+        </div>
+      </div>
+      <table class="enterprise-table">
+        <thead>
+          <tr>
+            <th style="width: 80px;">Hora</th>
+            <th style="width: 200px;">Módulo / Target</th>
+            <th style="width: 90px;">Resultado</th>
+            <th style="width: 90px;">Duración</th>
+            <th style="width: 340px;">Detalle Técnico / Excepción</th>
+            <th>trace_id de Correlación Causal</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-traces">
+          <tr><td colspan="6" style="text-align:center; color:var(--text-subtle);">Esperando flujo de eventos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <script>
-let pestanaActual = 'pestana-portal-b2b';
-let traficoActivo = true; // Arranca activo por defecto con la baseline
+let pestanaActiva = 'view-b2b-ops';
+let traficoActivo = true;
 let ultimasTrazasCache = [];
 
-function verPestana(id) {
+function cambiarPestana(vistaId, btn) {
   document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  event.target.classList.add('active');
-  pestanaActual = id;
+  document.querySelectorAll('.nav-tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(vistaId).classList.add('active');
+  btn.classList.add('active');
+  pestanaActiva = vistaId;
 }
 
-// Configuración de Chart.js
+// Configuración de Chart.js con estilo sobrio y corporativo
 const ctxLat = document.getElementById('chartLatency').getContext('2d');
 const chartLat = new Chart(ctxLat, {
   type: 'line',
   data: {
     labels: [],
     datasets: [
-      { label: 'p99 (ms)', data: [], borderColor: '#f59e0b', backgroundColor: 'transparent', tension: 0.2, borderWidth: 2, pointRadius: 1 },
-      { label: 'p95 (ms)', data: [], borderColor: '#38bdf8', backgroundColor: 'transparent', tension: 0.2, borderWidth: 1.5, pointRadius: 0 },
-      { label: 'p50 (ms)', data: [], borderColor: '#22c55e', backgroundColor: 'transparent', tension: 0.2, borderWidth: 1.5, pointRadius: 0 },
+      { label: 'p99 (ms)', data: [], borderColor: '#f59e0b', backgroundColor: 'transparent', tension: 0.1, borderWidth: 2, pointRadius: 0 },
+      { label: 'p95 (ms)', data: [], borderColor: '#0284c7', backgroundColor: 'transparent', tension: 0.1, borderWidth: 1.5, pointRadius: 0 },
+      { label: 'p50 (ms)', data: [], borderColor: '#10b981', backgroundColor: 'transparent', tension: 0.1, borderWidth: 1.5, pointRadius: 0 },
     ]
   },
   options: {
@@ -839,10 +1068,10 @@ const chartLat = new Chart(ctxLat, {
     maintainAspectRatio: false,
     animation: false,
     scales: {
-      x: { ticks: { color: '#64748b', maxTicksLimit: 8 }, grid: { color: '#1e293b' } },
-      y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' }, beginAtZero: true }
+      x: { ticks: { color: '#64748b', maxTicksLimit: 7 }, grid: { color: '#1f293d' } },
+      y: { ticks: { color: '#64748b' }, grid: { color: '#1f293d' }, beginAtZero: true }
     },
-    plugins: { legend: { labels: { color: '#cbd5e1', boxWidth: 10, font: { size: 10 } } } }
+    plugins: { legend: { labels: { color: '#94a3b8', boxWidth: 10, font: { size: 10 } } } }
   }
 });
 
@@ -852,8 +1081,8 @@ const chartTput = new Chart(ctxTput, {
   data: {
     labels: [],
     datasets: [
-      { label: 'Throughput (ops/s)', data: [], borderColor: '#38bdf8', backgroundColor: 'transparent', yAxisID: 'y', tension: 0.2, borderWidth: 2, pointRadius: 0 },
-      { label: 'Errores (%)', data: [], borderColor: '#ef4444', backgroundColor: 'transparent', yAxisID: 'y1', tension: 0.2, borderWidth: 2, pointRadius: 0 },
+      { label: 'Throughput (ops/s)', data: [], borderColor: '#0284c7', backgroundColor: 'transparent', yAxisID: 'y', tension: 0.1, borderWidth: 2, pointRadius: 0 },
+      { label: 'Errores (%)', data: [], borderColor: '#ef4444', backgroundColor: 'transparent', yAxisID: 'y1', tension: 0.1, borderWidth: 2, pointRadius: 0 },
     ]
   },
   options: {
@@ -861,15 +1090,15 @@ const chartTput = new Chart(ctxTput, {
     maintainAspectRatio: false,
     animation: false,
     scales: {
-      x: { ticks: { color: '#64748b', maxTicksLimit: 6 }, grid: { color: '#1e293b' } },
-      y: { type: 'linear', position: 'left', ticks: { color: '#38bdf8' }, grid: { color: '#1e293b' }, beginAtZero: true },
+      x: { ticks: { color: '#64748b', maxTicksLimit: 6 }, grid: { color: '#1f293d' } },
+      y: { type: 'linear', position: 'left', ticks: { color: '#0284c7' }, grid: { color: '#1f293d' }, beginAtZero: true },
       y1: { type: 'linear', position: 'right', min: 0, max: 100, ticks: { color: '#ef4444' }, grid: { display: false } }
     },
-    plugins: { legend: { labels: { color: '#cbd5e1', boxWidth: 10, font: { size: 10 } } } }
+    plugins: { legend: { labels: { color: '#94a3b8', boxWidth: 10, font: { size: 10 } } } }
   }
 });
 
-async function actualizarDashboard() {
+async function actualizarEstado() {
   try {
     const res = await fetch('/api/estado');
     const data = await res.json();
@@ -878,59 +1107,52 @@ async function actualizarDashboard() {
     const c = data.caos;
     const hist = data.historico;
 
-    // Métricas numéricas
-    document.getElementById('val-p99').innerText = m.p99.toFixed(1) + ' ms';
-    document.getElementById('val-p50').innerText = m.p50.toFixed(1);
-    document.getElementById('val-p95').innerText = m.p95.toFixed(1);
-    document.getElementById('val-tput').innerText = m.throughput;
-    document.getElementById('val-err').innerText = m.err_pct.toFixed(1) + ' %';
-    document.getElementById('val-err-count').innerText = m.total_errores;
-    document.getElementById('val-cpu').innerText = m.cpu_pct.toFixed(1) + ' %';
-    document.getElementById('val-rss').innerText = m.rss_mb.toFixed(1);
+    // Actualizar métricas SRE
+    document.getElementById('sre-val-p99').innerText = m.p99.toFixed(1) + ' ms';
+    document.getElementById('sre-val-p50').innerText = m.p50.toFixed(1);
+    document.getElementById('sre-val-p95').innerText = m.p95.toFixed(1);
+    document.getElementById('sre-val-tput').innerText = m.throughput + ' ops/s';
+    document.getElementById('sre-val-err').innerText = m.err_pct.toFixed(1) + ' %';
+    document.getElementById('sre-val-err-count').innerText = m.total_errores;
+    document.getElementById('sre-val-cpu').innerText = m.cpu_pct.toFixed(1) + ' %';
+    document.getElementById('sre-val-rss').innerText = m.rss_mb.toFixed(1);
 
-    // Estado del Caos y Banner B2B
-    const statusEl = document.getElementById('val-chaos-status');
-    const faultEl = document.getElementById('val-fault-name');
-    const banner = document.getElementById('banner-negocio');
-    const bannerTit = document.getElementById('banner-texto-titulo');
-    const bannerDesc = document.getElementById('banner-texto-desc');
-    const kpiSla = document.getElementById('kpi-sla');
+    // Indicador global en Navbar y Banners
+    const topPill = document.getElementById('top-status-pill');
+    const topText = document.getElementById('top-status-text');
+    const bannerB2b = document.getElementById('banner-b2b');
+    const b2bTitle = document.getElementById('banner-b2b-title');
+    const b2bDesc = document.getElementById('banner-b2b-desc');
 
     if (c.kill_switch) {
-      statusEl.innerText = '🚨 KILL SWITCH ACTIVO';
-      statusEl.style.color = 'var(--accent-red)';
-      faultEl.innerText = 'Todas las perturbaciones abortadas';
-      banner.className = 'biz-status-banner alert';
-      bannerTit.innerText = '🚨 EMERGENCIA: SISTEMA EN MODO SEGURO (KILL SWITCH)';
-      bannerDesc.innerText = 'Se forzó la parada total del motor de caos. Tráfico reencaminado limpiamente.';
+      topPill.className = 'status-pill critical';
+      topText.innerText = 'KILL SWITCH SRE ACTIVADO';
+      bannerB2b.className = 'banner-operational error';
+      b2bTitle.innerText = 'EMERGENCIA OPERACIONAL: KILL SWITCH ACTIVADO';
+      b2bDesc.innerText = 'Todas las perturbaciones fueron abortadas de forma forzada por SRE.';
     } else if (c.fallas_activas && c.fallas_activas.length > 0) {
-      const fName = c.fallas_activas.join(', ');
-      statusEl.innerText = '⚡ FALLA INYECTADA';
-      statusEl.style.color = 'var(--accent-amber)';
-      faultEl.innerText = fName;
-
-      banner.className = 'biz-status-banner alert';
-      bannerTit.innerText = '⚠️ DEGRADACIÓN DETECTADA: ' + fName;
-      bannerDesc.innerText = 'La inyección de fallas está afectando la resiliencia. Observa cómo responden las métricas.';
+      topPill.className = 'status-pill degraded';
+      topText.innerText = 'FALLA INYECTADA: ' + c.fallas_activas.join(', ');
+      bannerB2b.className = 'banner-operational warning';
+      b2bTitle.innerText = 'DEGRADACIÓN ACTIVA EN RED DE SUMINISTRO: ' + c.fallas_activas.join(', ');
+      b2bDesc.innerText = 'El sistema está experimentando la perturbación inyectada. Revise la consola SRE para evaluar la resiliencia.';
     } else {
-      statusEl.innerText = 'NORMAL';
-      statusEl.style.color = 'var(--accent-green)';
-      faultEl.innerText = 'Sin fallas activas';
-
-      banner.className = 'biz-status-banner';
-      bannerTit.innerText = '🟢 OPERANDO CON NORMALIDAD';
-      bannerDesc.innerText = 'Todos los módulos B2B (Proveedores, Catálogo, Órdenes, Logística) dentro del SLA (< 2 ms).';
+      topPill.className = 'status-pill normal';
+      topText.innerText = 'RED: ESTABLE (BASELINE)';
+      bannerB2b.className = 'banner-operational';
+      b2bTitle.innerText = 'SISTEMA B2B OPERANDO EN RÉGIMEN NORMAL';
+      b2bDesc.innerText = 'Contratos vigentes validados (Q1). SLAs logísticos dentro del umbral nominal (< 2 ms).';
     }
 
-    // Calcular SLA en vivo
+    // Actualizar KPIs de Negocio
     const slaActual = Math.max(0, 100.0 - m.err_pct).toFixed(1);
+    const kpiSla = document.getElementById('kpi-b2b-sla');
     kpiSla.innerText = slaActual + ' %';
-    kpiSla.style.color = (slaActual >= 98.0) ? 'var(--accent-green)' : ((slaActual >= 80.0) ? 'var(--accent-amber)' : 'var(--accent-red)');
+    kpiSla.style.color = (slaActual >= 98.0) ? 'var(--status-ok)' : ((slaActual >= 80.0) ? 'var(--status-warn)' : 'var(--status-err)');
 
-    // KPI Facturación
     if (data.negocio && data.negocio.facturado_cop) {
       const mills = (data.negocio.facturado_cop / 1000000).toFixed(1);
-      document.getElementById('kpi-facturado').innerText = `$ ${mills} M`;
+      document.getElementById('kpi-b2b-facturado').innerText = `$ ${mills} M COP`;
     }
 
     // Actualizar Gráficas
@@ -947,37 +1169,37 @@ async function actualizarDashboard() {
       chartTput.update();
     }
 
-    // Tabla de Pedidos B2B
+    // Renderizar Pedidos B2B
     if (data.pedidos && data.pedidos.length > 0) {
       renderPedidosB2B(data.pedidos);
     }
 
-    // Trazas
+    // Renderizar Trazas
     ultimasTrazasCache = data.trazas || [];
     renderTrazas();
 
   } catch (err) {
-    console.error('Error al actualizar dashboard:', err);
+    console.error('Error al actualizar estado:', err);
   }
 }
 
 function renderPedidosB2B(pedidos) {
-  const tbody = document.getElementById('tbody-pedidos');
+  const tbody = document.getElementById('tbody-b2b-orders');
   if (!tbody) return;
   let html = '';
   for (const p of pedidos) {
-    const badgeClass = p.exito ? 'ok' : 'err';
+    const stateClass = p.exito ? 'ok' : 'err';
     html += `
       <tr>
-        <td><strong class="code-tag">${p.id}</strong></td>
+        <td><strong class="code-text">${p.id}</strong></td>
         <td>${p.hora}</td>
         <td>${p.proveedor}</td>
         <td>${p.producto}</td>
-        <td style="font-weight:bold;">${p.monto_fmt}</td>
-        <td><span style="color:var(--accent-cyan); font-size:10px;">🕒 ${p.eta}</span></td>
-        <td><span class="status-badge ${badgeClass}">${p.estado}</span></td>
+        <td style="font-weight:700;">${p.monto_fmt}</td>
+        <td style="color:var(--text-muted); font-size:11px;">${p.eta}</td>
+        <td><span class="badge-state ${stateClass}">${p.estado}</span></td>
         <td>${p.dur_ms} ms</td>
-        <td><span style="font-family:monospace; color:#64748b; font-size:10px;">${p.trace_id}</span></td>
+        <td><span class="code-text" style="color:#64748b;">${p.trace_id}</span></td>
       </tr>
     `;
   }
@@ -985,27 +1207,27 @@ function renderPedidosB2B(pedidos) {
 }
 
 function renderTrazas() {
-  const tbody = document.getElementById('trace-tbody');
+  const tbody = document.getElementById('tbody-traces');
   if (!tbody) return;
-  const soloErrores = document.getElementById('chk-solo-errores').checked;
+  const soloErrores = document.getElementById('chk-filter-errors').checked;
   const lista = soloErrores ? ultimasTrazasCache.filter(t => t.resultado === 'error') : ultimasTrazasCache;
 
   if (lista.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">No hay eventos registrados con el filtro actual.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-subtle);">No hay eventos registrados con el criterio actual.</td></tr>';
     return;
   }
 
   let html = '';
   for (const t of lista) {
-    const resClass = t.resultado === 'ok' ? 'status-badge ok' : 'status-badge err';
+    const resClass = t.resultado === 'ok' ? 'badge-state ok' : 'badge-state err';
     html += `
       <tr>
         <td>${t.ts}</td>
-        <td><span class="code-tag">${t.target}</span></td>
+        <td><span class="code-text">${t.target}</span></td>
         <td><span class="${resClass}">${t.resultado.toUpperCase()}</span></td>
         <td>${t.dur_ms} ms</td>
-        <td style="color:${t.error ? 'var(--accent-red)' : 'var(--text-secondary)'}; font-size:10px;">${t.error || 'Operación completada exitosamente'}</td>
-        <td><span style="font-family:monospace; color:#64748b; font-size:10px;">${t.trace_id}</span></td>
+        <td style="color:${t.error ? 'var(--status-err)' : 'var(--text-muted)'}; font-size:11px;">${t.error || 'Operación completada con éxito'}</td>
+        <td><span class="code-text" style="color:#64748b;">${t.trace_id}</span></td>
       </tr>
     `;
   }
@@ -1014,7 +1236,7 @@ function renderTrazas() {
 
 async function activarFalla(faultId, params, trafficPct) {
   try {
-    const res = await fetch('/api/falla/activar', {
+    await fetch('/api/falla/activar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1023,8 +1245,7 @@ async function activarFalla(faultId, params, trafficPct) {
         traffic_pct: trafficPct !== undefined ? trafficPct : 1.0
       })
     });
-    const data = await res.json();
-    actualizarDashboard();
+    actualizarEstado();
   } catch (err) {
     alert('Error al activar falla: ' + err);
   }
@@ -1032,18 +1253,17 @@ async function activarFalla(faultId, params, trafficPct) {
 
 async function triggerKillSwitch() {
   try {
-    const res = await fetch('/api/kill-switch', { method: 'POST' });
-    const data = await res.json();
-    actualizarDashboard();
+    await fetch('/api/kill-switch', { method: 'POST' });
+    actualizarEstado();
   } catch (err) {
-    alert('Error al accionar Kill Switch: ' + err);
+    alert('Error al ejecutar Kill Switch: ' + err);
   }
 }
 
 async function resetCatalogo() {
   try {
-    const res = await fetch('/api/reset', { method: 'POST' });
-    actualizarDashboard();
+    await fetch('/api/reset', { method: 'POST' });
+    actualizarEstado();
   } catch (err) {
     alert('Error al restablecer catálogo: ' + err);
   }
@@ -1051,53 +1271,40 @@ async function resetCatalogo() {
 
 async function toggleTrafico() {
   traficoActivo = !traficoActivo;
-  const rps = parseInt(document.getElementById('sel-rps').value);
-  const mitigacion = document.getElementById('sel-mitigacion').value;
+  const rps = parseInt(document.getElementById('sel-traffic-rps').value);
+  const mitigacion = document.getElementById('sel-mitigacion-strategy').value;
   await fetch('/api/trafico', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ activo: traficoActivo, rps: rps, mitigacion: mitigacion })
   });
 
-  const btn = document.getElementById('btn-traffic-toggle');
-  const badge = document.getElementById('badge-live-traffic');
-  if (traficoActivo) {
-    btn.className = 'btn btn-green';
-    btn.innerText = '⏸ PAUSAR TRÁFICO';
-    badge.innerText = `● TRÁFICO BASELINE ACTIVO (${rps} ops/s)`;
-    badge.style.color = 'var(--accent-green)';
-  } else {
-    btn.className = 'btn btn-amber';
-    btn.innerText = '▶ REANUDAR TRÁFICO';
-    badge.innerText = '○ TRÁFICO PAUSADO';
-    badge.style.color = 'var(--text-secondary)';
-  }
+  const btn = document.getElementById('btn-toggle-traffic');
+  btn.innerText = traficoActivo ? 'Pausar Tráfico' : 'Reanudar Tráfico';
 }
 
 async function actualizarTrafico() {
   if (!traficoActivo) return;
-  const rps = parseInt(document.getElementById('sel-rps').value);
-  const mitigacion = document.getElementById('sel-mitigacion').value;
+  const rps = parseInt(document.getElementById('sel-traffic-rps').value);
+  const mitigacion = document.getElementById('sel-mitigacion-strategy').value;
   await fetch('/api/trafico', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ activo: true, rps: rps, mitigacion: mitigacion })
   });
-  document.getElementById('badge-live-traffic').innerText = `● TRÁFICO BASELINE ACTIVO (${rps} ops/s)`;
 }
 
 async function crearPedidoManual() {
   try {
-    const res = await fetch('/api/pedido/crear', { method: 'POST' });
-    const data = await res.json();
-    actualizarDashboard();
+    await fetch('/api/pedido/crear', { method: 'POST' });
+    actualizarEstado();
   } catch (err) {
-    console.error('Error al crear pedido manual:', err);
+    console.error('Error al emitir pedido:', err);
   }
 }
 
-setInterval(actualizarDashboard, 1000);
-actualizarDashboard();
+setInterval(actualizarEstado, 1000);
+actualizarEstado();
 </script>
 
 </body>
@@ -1194,7 +1401,7 @@ class TableroHttpHandler(http.server.BaseHTTPRequestHandler):
             self.manager.set_kill_switch(nuevo_estado)
             if nuevo_estado:
                 self.generador.engine.stop_all_disturbances()
-            obs.kill_switch("activado_desde_tablero" if nuevo_estado else "desactivado")
+            obs.kill_switch("activado_desde_consola_sre" if nuevo_estado else "desactivado")
             self._responder_json(200, {"ok": True, "kill_switch": nuevo_estado})
             return
 
@@ -1213,7 +1420,6 @@ class TableroHttpHandler(http.server.BaseHTTPRequestHandler):
 
             falla_obj = self.manager.get_config().faults.get(fault_id)
             if falla_obj:
-                # C1: Quema de CPU multihilo con auto-recuperación
                 if fault_id == "C1_saturacion_cpu":
                     self.generador.engine.start_cpu_burn(falla_obj)
                     dur_s = float(params.get("duration_s", 15.0))
@@ -1222,7 +1428,6 @@ class TableroHttpHandler(http.server.BaseHTTPRequestHandler):
                         self.manager.set_fault_state(fault_id, False)
                     threading.Thread(target=_auto_apagar_cpu, daemon=True).start()
 
-                # C2: Presión de memoria RAM con auto-recuperación
                 elif fault_id == "C2_presion_memoria":
                     self.generador.engine.apply_memory_pressure(falla_obj)
                     dur_s = float(params.get("duration_s", 15.0))
@@ -1231,7 +1436,6 @@ class TableroHttpHandler(http.server.BaseHTTPRequestHandler):
                         self.manager.set_fault_state(fault_id, False)
                     threading.Thread(target=_auto_apagar_ram, daemon=True).start()
 
-                # D1: Corte de Red transitorio con auto-recuperación exacta (5 segundos)
                 elif fault_id == "D1_particion_red":
                     dur_s = float(params.get("duration_s", 5.0))
                     def _auto_recuperar_red():
@@ -1248,7 +1452,7 @@ class TableroHttpHandler(http.server.BaseHTTPRequestHandler):
             self.manager.reset_defaults()
             self.manager.set_kill_switch(False)
             self.manager.set_global_enabled(False)
-            self._responder_json(200, {"ok": True, "mensaje": "Catálogo restablecido"})
+            self._responder_json(200, {"ok": True, "mensaje": "Estado restablecido a normal"})
             return
 
         if parsed.path == "/api/trafico":
@@ -1263,7 +1467,6 @@ class TableroHttpHandler(http.server.BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/api/pedido/crear":
-            # Pedido manual bajo demanda desde el botón de la interfaz B2B
             datos_pedido = self.generador._generar_pedido_aleatorio()
             self.generador.ejecutar_transaccion("Q3_ordenes_compra", datos_pedido)
             self._responder_json(200, {"ok": True, "pedido": datos_pedido})
@@ -1284,21 +1487,22 @@ def iniciar_tablero(puerto: int = PUERTO_DEFECTO, abrir_navegador: bool = True):
     TableroHttpHandler.manager = manager
     TableroHttpHandler.generador = generador
 
-    # Iniciar hilo de telemetría USE (1 segundo)
+    # Hilo recolector USE
     hilo_tel = threading.Thread(target=bucle_telemetria_fondo, daemon=True)
     hilo_tel.start()
 
-    # Iniciar automáticamente el tráfico concurrente baseline (40 rps)
+    # Arrancar automáticamente el tráfico baseline (40 rps)
     generador.iniciar(rps=40, mitigacion="ninguna")
 
     server = socketserver.TCPServer(("0.0.0.0", puerto), TableroHttpHandler)
 
     url = f"http://localhost:{puerto}"
     print("=" * 75)
-    print(" SUPPLYGRID · PLATAFORMA B2B Y CONSOLA DE RESILIENCIA EN TIEMPO REAL")
+    print(" SUPPLYGRID ENTERPRISE · PLATAFORMA B2B Y CONSOLA SRE EN TIEMPO REAL")
     print("=" * 75)
-    print(f" Servidor activo en        : {url}")
-    print(f" Tráfico baseline          : ACTIVO por defecto (40 rps)")
+    print(f" URL Servidor              : {url}")
+    print(f" Régimen inicial           : Tráfico BASELINE ACTIVO (40 ops/s)")
+    print(f" Concurrencia              : 3 Workers multihilo")
     print(f" Archivo de configuración  : {config_path}")
     print(" Presiona Ctrl+C para detener el servidor.")
     print("=" * 75)
@@ -1312,7 +1516,7 @@ def iniciar_tablero(puerto: int = PUERTO_DEFECTO, abrir_navegador: bool = True):
         print("\nDeteniendo servidor...")
         generador.detener()
         server.server_close()
-        print("Tablero finalizado.")
+        print("Servidor finalizado.")
 
 
 if __name__ == "__main__":
